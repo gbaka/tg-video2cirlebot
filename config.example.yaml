@@ -1,0 +1,28 @@
+# Пример конфигурации Video to Circle Bot.
+# Скопируйте в config.yaml и заполните своими значениями:
+#   cp config.example.yaml config.yaml
+# config.yaml добавлен в .gitignore — реальные токены в репозиторий не попадают.
+
+bot:
+  # Токен от @BotFather
+  token: "1234567890:AAAA-EXAMPLE-TOKEN-REPLACE-ME"
+  # ID администраторов (узнать через @userinfobot)
+  admin_ids: [123456789]
+
+channel:
+  # Текст кнопки для вступления в канал/чат
+  invite_text: "Вступить в канал"
+
+video:
+  # Максимальный размер исходного видео (MB), 0 = без ограничения
+  max_size_mb: 50
+  # Целевое разрешение кружка (Telegram требует квадрат)
+  target_resolution: 360
+  # CRF для libx264 (18-28, ниже = лучше качество)
+  crf: 24
+  # Пресет кодирования (ultrafast..veryslow)
+  preset: "fast"
+
+logging:
+  # DEBUG, INFO, WARNING, ERROR
+  level: "INFO"

@@ -1,0 +1,21 @@
+# Секреты и локальные данные — не коммитим
+config.yaml
+.env
+*.db
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log

@@ -1,0 +1,37 @@
+# docker-compose.yml для развертывания бота
+# Использование: docker compose up -d
+
+services:
+  circlebot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-to-circle-bot
+    restart: unless-stopped
+    # Настройки задаются только в config.yaml (монтируется ниже), ENV не используется.
+    volumes:
+      # Конфиг монтируется в контейнер (токен, админы, параметры видео)
+      - ./config.yaml:/app/config.yaml:ro
+      # SQLite база с настройками канала
+      - circlebot_data:/app/data
+      # Временные файлы конвертации (опционально, для очистки при перезапуске)
+      - circlebot_tmp:/tmp/circlebot
+    # Ограничение ресурсов (подстройте под свой сервер)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    # Логи
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  circlebot_tmp:
+  circlebot_data:
