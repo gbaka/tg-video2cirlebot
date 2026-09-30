@@ -22,7 +22,12 @@ from handlers_admin import router as admin_router
 from handlers_user import router as user_router
 from i18n import load_locales
 from repositories import (
-    ChannelRepo, PaymentRepo, SettingsRepo, SubscriptionRepo, UsageRepo, UserRepo,
+    ChannelRepo,
+    PaymentRepo,
+    SettingsRepo,
+    SubscriptionRepo,
+    UsageRepo,
+    UserRepo,
 )
 from tasks import JobRunner, TaskRegistry
 from video_converter import VideoConverter

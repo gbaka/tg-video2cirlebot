@@ -3,7 +3,6 @@
 """
 
 import logging
-from typing import Optional
 
 from aiogram.types import CallbackQuery, Message
 
@@ -21,6 +20,8 @@ async def ensure_user(event: Message | CallbackQuery) -> dict:
     """Возвращает (создаёт при необходимости) запись пользователя."""
     ctx = get_ctx()
     tg = event.from_user
+    if tg is None:  # например, сообщение от имени канала
+        raise ValueError("Событие без пользователя")
     return await ctx.users.get_or_create(
         user_id=tg.id,
         username=tg.username,
@@ -29,7 +30,7 @@ async def ensure_user(event: Message | CallbackQuery) -> dict:
     )
 
 
-async def user_plan(user: dict) -> tuple[Plan, Optional[dict]]:
+async def user_plan(user: dict) -> tuple[Plan, dict | None]:
     """
     Определяет действующий тариф пользователя.
     Возвращает (Plan, активная_подписка|None).

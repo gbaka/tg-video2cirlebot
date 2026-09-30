@@ -2,6 +2,7 @@
 Пользовательские хендлеры: меню, конвертация, подписка, настройки, язык, качество.
 """
 
+import contextlib
 import logging
 import os
 import tempfile
@@ -12,18 +13,28 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
-    BufferedInputFile, CallbackQuery, Message, PreCheckoutQuery,
+    BufferedInputFile,
+    CallbackQuery,
+    Message,
+    PreCheckoutQuery,
 )
 
 import menus
 from access import (
-    ensure_user, get_invite_url, in_maintenance, is_admin, membership_ok,
-    membership_required, user_lang, user_plan,
+    ensure_user,
+    get_invite_url,
+    in_maintenance,
+    is_admin,
+    membership_ok,
+    membership_required,
+    user_lang,
+    user_plan,
 )
 from context import get_ctx
 from i18n import SUPPORTED, lang_name, t
 from payments import parse_payload, send_subscription_invoice
 from repositories import is_lifetime
+from tg import cb_data, cb_message
 from video_converter import VideoConverter
 
 logger = logging.getLogger(__name__)
@@ -36,17 +47,20 @@ private_chat = F.chat.type == "private"
 
 async def _guard(event: Message | CallbackQuery, lang: str) -> bool:
     """Проверка членства. True — доступ разрешён."""
-    if is_admin(event.from_user.id):
+    actor = event.from_user
+    if actor is None:  # в личных чатах такого не бывает
+        return True
+    if is_admin(actor.id):
         return True
     if not await membership_required():
         return True
-    if await membership_ok(event.from_user.id):
+    if await membership_ok(actor.id):
         return True
     url = await get_invite_url()
     kb = menus.membership_kb(lang, url)
     text = t(lang, "member.denied")
     if isinstance(event, CallbackQuery):
-        await event.message.answer(text, reply_markup=kb, parse_mode="HTML")
+        await cb_message(event).answer(text, reply_markup=kb, parse_mode="HTML")
         await event.answer()
     else:
         await event.answer(text, reply_markup=kb, parse_mode="HTML")
@@ -62,7 +76,7 @@ async def _show_main(event: Message | CallbackQuery, user: dict) -> None:
     kb = menus.main_menu(lang, is_admin(user["user_id"]))
     text = _main_text(lang)
     if isinstance(event, CallbackQuery):
-        await event.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+        await cb_message(event).edit_text(text, reply_markup=kb, parse_mode="HTML")
     else:
         await event.answer(text, reply_markup=kb, parse_mode="HTML")
 
@@ -90,7 +104,8 @@ async def cmd_menu(message: Message) -> None:
 def _help_text(lang: str, user: dict) -> str:
     """Справка; админские команды показываем только администраторам."""
     text = t(lang, "help.text")
-    if is_admin(user.get("user_id")):
+    uid = user.get("user_id")
+    if uid is not None and is_admin(uid):
         text += t(lang, "help.admin")
     return text
 
@@ -132,7 +147,7 @@ async def cb_main(cb: CallbackQuery) -> None:
 async def cb_info(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "info.text"), reply_markup=menus.back_main(lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -142,7 +157,7 @@ async def cb_info(cb: CallbackQuery) -> None:
 async def cb_help(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         _help_text(lang, user), reply_markup=menus.back_main(lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -153,7 +168,7 @@ async def cb_profile(cb: CallbackQuery) -> None:
     ctx = get_ctx()
     user = await ensure_user(cb)
     lang = user["language"]
-    plan, sub = await user_plan(user)
+    plan, _ = await user_plan(user)
 
     today = await ctx.usage.count_user_today(user["user_id"])
     total = await ctx.usage._scalar(
@@ -165,7 +180,10 @@ async def cb_profile(cb: CallbackQuery) -> None:
     else:
         quality = t(lang, "profile.quality_fixed", res=plan.default_resolution)
 
-    limit_str = "" if plan.is_unlimited() else t(lang, "profile.today_limit", limit=plan.daily_limit)
+    limit_str = (
+        "" if plan.is_unlimited()
+        else t(lang, "profile.today_limit", limit=plan.daily_limit)
+    )
     plan_label = "⭐ Pro" if plan.code == "pro" else "Free"
 
     text = t(lang, "profile.title") + t(
@@ -174,7 +192,7 @@ async def cb_profile(cb: CallbackQuery) -> None:
         today=today, today_limit=limit_str, total=total,
         created=(user.get("created_at") or "")[:10],
     )
-    await cb.message.edit_text(text, reply_markup=menus.back_main(lang), parse_mode="HTML")
+    await cb_message(cb).edit_text(text, reply_markup=menus.back_main(lang), parse_mode="HTML")
     await cb.answer()
 
 
@@ -191,7 +209,7 @@ async def cb_settings(cb: CallbackQuery) -> None:
     text = t(lang, "settings.title", lang=lang_name(lang), quality=quality)
     if plan.code != "pro":
         text += t(lang, "settings.quality_locked")
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text, reply_markup=menus.settings_menu(lang, plan.code == "pro"), parse_mode="HTML"
     )
     await cb.answer()
@@ -201,7 +219,7 @@ async def cb_settings(cb: CallbackQuery) -> None:
 async def cb_lang(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "lang.title"), reply_markup=menus.language_menu(lang, lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -210,7 +228,7 @@ async def cb_lang(cb: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("l:"))
 async def cb_set_lang(cb: CallbackQuery) -> None:
     ctx = get_ctx()
-    new_lang = cb.data.split(":", 1)[1]
+    new_lang = cb_data(cb).split(":", 1)[1]
     if new_lang not in SUPPORTED:
         await cb.answer()
         return
@@ -221,14 +239,15 @@ async def cb_set_lang(cb: CallbackQuery) -> None:
     user["language"] = new_lang
     plan, _ = await user_plan(user)
     quality = (
-        t(new_lang, "profile.quality_selectable", res=plan.normalize_resolution(user.get("quality")))
+        t(new_lang, "profile.quality_selectable",
+          res=plan.normalize_resolution(user.get("quality")))
         if plan.code == "pro"
         else t(new_lang, "profile.quality_fixed", res=plan.default_resolution)
     )
     text = t(new_lang, "settings.title", lang=lang_name(new_lang), quality=quality)
     if plan.code != "pro":
         text += t(new_lang, "settings.quality_locked")
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text,
         reply_markup=menus.settings_menu(new_lang, plan.code == "pro"),
         parse_mode="HTML",
@@ -244,7 +263,7 @@ async def cb_quality(cb: CallbackQuery) -> None:
         await cb.answer(t(lang, "settings.quality_locked").strip(), show_alert=True)
         return
     current = plan.normalize_resolution(user.get("quality"))
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "quality.title") + "\n\n" + t(lang, "quality.current", res=current),
         reply_markup=menus.quality_menu(lang, plan.resolutions, current),
         parse_mode="HTML",
@@ -262,7 +281,7 @@ async def cb_set_quality(cb: CallbackQuery) -> None:
         await cb.answer(t(lang, "settings.quality_locked").strip(), show_alert=True)
         return
     try:
-        res = int(cb.data.split(":", 1)[1])
+        res = int(cb_data(cb).split(":", 1)[1])
     except ValueError:
         await cb.answer()
         return
@@ -270,7 +289,7 @@ async def cb_set_quality(cb: CallbackQuery) -> None:
     await ctx.users.set_quality(user["user_id"], res)
     await cb.answer(t(lang, "quality.changed", res=res))
     user["quality"] = res
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "quality.title") + "\n\n" + t(lang, "quality.current", res=res),
         reply_markup=menus.quality_menu(lang, plan.resolutions, res),
         parse_mode="HTML",
@@ -307,7 +326,7 @@ async def cb_subscription(cb: CallbackQuery) -> None:
     else:
         text += t(lang, "sub.no_prices")
 
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text,
         reply_markup=menus.subscription_menu(lang, ctx.plans.prices, plan.code == "pro"),
         parse_mode="HTML",
@@ -326,7 +345,7 @@ async def cb_sub_cancel(cb: CallbackQuery) -> None:
         return
     expires = (t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"])
                else sub["expires_at"][:10])
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "sub.cancel_confirm", expires=expires),
         reply_markup=menus.sub_cancel_confirm(lang),
         parse_mode="HTML",
@@ -347,7 +366,7 @@ async def cb_sub_cancel_confirm(cb: CallbackQuery) -> None:
         "Подписка отменена пользователем: user=%s, оставалось до %s",
         user["user_id"], cancelled["expires_at"],
     )
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "sub.cancel_done"),
         reply_markup=menus.back_main(lang),
         parse_mode="HTML",
@@ -360,7 +379,7 @@ async def cb_buy(cb: CallbackQuery) -> None:
     ctx = get_ctx()
     user = await ensure_user(cb)
     lang = user["language"]
-    code = cb.data.split(":", 1)[1]
+    code = cb_data(cb).split(":", 1)[1]
     price = ctx.plans.price(code)
     if not price:
         await cb.answer("N/A", show_alert=True)
@@ -384,6 +403,9 @@ async def on_successful_payment(message: Message) -> None:
     user = await ensure_user(message)
     lang = user["language"]
     sp = message.successful_payment
+    if sp is None:  # сообщение с типом successful_payment всегда его содержит
+        logger.warning("Платёж без данных successful_payment")
+        return
 
     data = parse_payload(sp.invoice_payload)
     if not data:
@@ -424,7 +446,6 @@ async def on_successful_payment(message: Message) -> None:
 @router.callback_query(F.data == "c:check")
 async def cb_check_membership(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
-    lang = user["language"]
     if is_admin(user["user_id"]) or await membership_ok(user["user_id"]):
         await cb.answer("✅")
         await _show_main(cb, user)
@@ -535,10 +556,8 @@ async def _convert_one(ctx, user, lang, plan, item, status, index, total) -> boo
         ctx.tasks.remove(task_id)
         for path in (input_path, output_path):
             if path and os.path.exists(path):
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(path)
-                except OSError:
-                    pass
 
 
 async def _process_batch(messages: list, user, lang, plan) -> None:
@@ -603,10 +622,8 @@ async def _process_batch_locked(messages: list, user, lang, plan) -> None:
             await _convert_one(ctx, user, lang, plan, item, status, index, len(valid))
     finally:
         if not keep_status:
-            try:
+            with contextlib.suppress(TelegramBadRequest):
                 await status.delete()
-            except TelegramBadRequest:
-                pass
 
 
 @router.message(F.video | F.video_note | F.document, private_chat)

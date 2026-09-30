@@ -19,3 +19,8 @@ Thumbs.db
 
 # Логи
 *.log
+
+# Кэши инструментов
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

@@ -6,12 +6,13 @@ JobRunner — периодические фоновые задачи (истеч
 """
 
 import asyncio
+import contextlib
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Awaitable, Callable, Optional
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +65,9 @@ class Job:
     func: Callable[[], Awaitable[None]]
     interval: int
     runs: int = 0
-    last_run: Optional[datetime] = None
-    last_error: Optional[str] = None
-    task: Optional[asyncio.Task] = field(default=None, repr=False)
+    last_run: datetime | None = None
+    last_error: str | None = None
+    task: asyncio.Task | None = field(default=None, repr=False)
 
 
 class JobRunner:
@@ -96,7 +97,7 @@ class JobRunner:
             try:
                 await job.func()
                 job.runs += 1
-                job.last_run = datetime.utcnow()
+                job.last_run = datetime.now(UTC)
                 job.last_error = None
             except asyncio.CancelledError:
                 break
@@ -112,7 +113,7 @@ class JobRunner:
                 job.task.cancel()
         for job in self._jobs:
             if job.task:
-                try:
+                # Гасим задачу молча: при остановке приложения её падение
+                # не должно мешать погасить остальные
+                with contextlib.suppress(asyncio.CancelledError, Exception):
                     await job.task
-                except (asyncio.CancelledError, Exception):
-                    pass

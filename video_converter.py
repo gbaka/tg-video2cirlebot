@@ -8,7 +8,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import ClassVar
 
 import ffmpeg
 
@@ -19,7 +19,7 @@ class VideoConverter:
     """Конвертер видео в формат кружка (video note) для Telegram."""
 
     # Поддерживаемые расширения (ffmpeg умеет почти всё)
-    SUPPORTED_EXTENSIONS = {
+    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {
         '.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv',
         '.m4v', '.3gp', '.3g2', '.ts', '.mts', '.m2ts', '.vob',
         '.ogv', '.mxf', '.f4v', '.asf', '.rm', '.rmvb', '.divx',
@@ -54,8 +54,8 @@ class VideoConverter:
         resolution: int = 360,
         crf: int = 24,
         preset: str = "fast",
-        output_path: Optional[str] = None,
-    ) -> Tuple[str, dict]:
+        output_path: str | None = None,
+    ) -> tuple[str, dict]:
         """
         Конвертирует видео в квадратный кружок.
 
@@ -133,4 +133,4 @@ class VideoConverter:
         except ffmpeg.Error as e:
             stderr = e.stderr.decode("utf-8", errors="ignore") if e.stderr else str(e)
             logger.error("FFmpeg error: %s", stderr)
-            raise RuntimeError("Ошибка конвертации видео")
+            raise RuntimeError("Ошибка конвертации видео") from e

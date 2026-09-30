@@ -1,0 +1,35 @@
+[project]
+name = "video-to-circle-bot"
+version = "1.0.0"
+description = "Telegram bot: converts videos into video notes (circles) with subscriptions, membership checks and an admin panel"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["locales"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+# RUF001-003 ругаются на кириллицу, неотличимую от латиницы (С/С, О/O) —
+# для русскоязычного проекта это ложные срабатывания
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+# assert — это норма для тестов
+"tests/*" = ["S101", "B011"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+exclude = ["^tests/"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning"]

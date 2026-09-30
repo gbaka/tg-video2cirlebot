@@ -8,7 +8,6 @@
 """
 
 import logging
-from typing import Optional
 
 from aiogram import Bot
 from aiogram.types import LabeledPrice
@@ -24,7 +23,7 @@ def make_payload(price: PriceOption) -> str:
     return f"sub|{price.code}|{price.plan}|{price.days}|{price.stars}|{1 if price.lifetime else 0}"
 
 
-def parse_payload(payload: str) -> Optional[dict]:
+def parse_payload(payload: str) -> dict | None:
     """Разбирает payload платежа. Возвращает dict или None при несовпадении."""
     if not payload or not payload.startswith("sub|"):
         return None

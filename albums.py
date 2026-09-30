@@ -7,7 +7,7 @@ Telegram доставляет альбом как N отдельных сооб�
 """
 import asyncio
 import logging
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 logger = logging.getLogger(__name__)
 

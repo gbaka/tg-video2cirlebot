@@ -2,8 +2,7 @@
 Тарифные планы: лимиты, определение прав пользователя.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 
 @dataclass
@@ -29,7 +28,7 @@ class Plan:
     def album_unlimited(self) -> bool:
         return self.max_album <= 0
 
-    def normalize_resolution(self, requested: Optional[int]) -> int:
+    def normalize_resolution(self, requested: int | None) -> int:
         """Возвращает допустимое разрешение (ближайшее из доступных)."""
         if not requested:
             return self.default_resolution
@@ -68,7 +67,7 @@ class Plans:
     def get(self, code: str) -> Plan:
         return self._plans.get(code, self.free)
 
-    def price(self, code: str) -> Optional[PriceOption]:
+    def price(self, code: str) -> PriceOption | None:
         for p in self.prices:
             if p.code == code:
                 return p
@@ -78,7 +77,7 @@ class Plans:
         self,
         is_admin: bool,
         has_active_subscription: bool,
-        subscription_plan: Optional[str] = None,
+        subscription_plan: str | None = None,
     ) -> Plan:
         """
         Определяет действующий тариф.

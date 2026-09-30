@@ -2,8 +2,8 @@
 Утилиты для проверки подписки на канал/чат.
 """
 
+import contextlib
 import logging
-from typing import Optional
 
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
@@ -18,8 +18,8 @@ class ChannelChecker:
     def __init__(self, bot: Bot, channel_link: str = ""):
         self.bot = bot
         self.channel_link = channel_link
-        self._channel_id: Optional[int] = None
-        self._channel_username: Optional[str] = None
+        self._channel_id: int | None = None
+        self._channel_username: str | None = None
         self._parse_channel_link()
 
     def set_link(self, link: str) -> None:
@@ -47,10 +47,8 @@ class ChannelChecker:
             if parts[0] == "c" and len(parts) > 1:
                 # Приватный канал/чат по ID: https://t.me/c/123456789
                 # Telegram ID = -100 + numeric_id
-                try:
+                with contextlib.suppress(ValueError):
                     self._channel_id = -100 * 10**9 - int(parts[1])  # -1001234567890
-                except ValueError:
-                    pass
             else:
                 # Публичный username
                 self._channel_username = parts[0].split("?")[0]
@@ -68,7 +66,7 @@ class ChannelChecker:
             pass
 
     @property
-    def chat_id(self) -> Optional[int | str]:
+    def chat_id(self) -> int | str | None:
         """Возвращает идентификатор чата для API вызовов."""
         if self._channel_id:
             return self._channel_id
@@ -82,7 +80,8 @@ class ChannelChecker:
 
         Returns:
             True если пользователь участник/админ/создатель, False если не участник.
-            Если бот не может проверить (нет доступа, не участник чата) — пропускает проверку (True).
+            Если бот не может проверить (нет доступа или он не участник чата),
+            проверка пропускается и возвращается True.
         """
         if not self.chat_id:
             logger.warning("Channel link not configured, skipping check")
@@ -103,20 +102,25 @@ class ChannelChecker:
                 return False
             elif "chat_admin_required" in err or "not enough rights" in err:
                 # Бот не админ или не участник — не можем проверить, пропускаем
-                logger.warning(f"Недостаточно прав для проверки подписки в {self.channel_link}, пропускаем проверку")
+                logger.warning(
+                    "Недостаточно прав для проверки подписки в %s, пропускаем проверку",
+                    self.channel_link,
+                )
                 return True
             else:
                 logger.error(f"Ошибка проверки подписки: {e}")
             return False
         except TelegramForbiddenError:
             # Бот не участник чата — не можем проверить
-            logger.warning(f"Бот не участник чата {self.channel_link}, пропускаем проверку подписки")
+            logger.warning(
+                "Бот не участник чата %s, пропускаем проверку подписки", self.channel_link
+            )
             return True
         except Exception as e:
             logger.error(f"Неожиданная ошибка проверки подписки: {e}")
             return False
 
-    async def get_chat_invite_link(self) -> Optional[str]:
+    async def get_chat_invite_link(self) -> str | None:
         """Получает invite link канала/чата (если бот админ)."""
         if not self.chat_id:
             return None
@@ -125,8 +129,9 @@ class ChannelChecker:
             chat = await self.bot.get_chat(self.chat_id)
             if chat.invite_link:
                 return chat.invite_link
-            # Пробуем создать ссылку если бот админ
-            return await self.bot.create_chat_invite_link(self.chat_id)
+            # Пробуем создать ссылку, если бот администратор
+            link = await self.bot.create_chat_invite_link(self.chat_id)
+            return link.invite_link
         except Exception as e:
             logger.warning(f"Не удалось получить invite link: {e}")
             return None
@@ -137,5 +142,8 @@ class ChannelChecker:
             return f"https://t.me/{self._channel_username}"
         if self._channel_id:
             # Для приватных чатов нужен invite link (бот должен быть админом)
-            return f"https://t.me/c/{abs(self._channel_id) // 10**9 * 10**9 + abs(self._channel_id) % 10**9}"
+            chat_id = abs(self._channel_id)
+            # Внутренний id чата без префикса -100
+            internal_id = chat_id // 10**9 * 10**9 + chat_id % 10**9
+            return f"https://t.me/c/{internal_id}"
         return self.channel_link

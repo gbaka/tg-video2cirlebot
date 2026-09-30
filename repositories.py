@@ -3,8 +3,8 @@
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import aiosqlite
 
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 def _now() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _ago(days: int = 0, hours: int = 0, minutes: int = 0) -> str:
-    return (datetime.utcnow() - timedelta(days=days, hours=hours, minutes=minutes)).strftime(
+    return (datetime.now(UTC) - timedelta(days=days, hours=hours, minutes=minutes)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
 
 def _future(days: int = 0, hours: int = 0) -> str:
-    return (datetime.utcnow() + timedelta(days=days, hours=hours)).strftime(
+    return (datetime.now(UTC) + timedelta(days=days, hours=hours)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -33,9 +33,11 @@ def _future(days: int = 0, hours: int = 0) -> str:
 LIFETIME_EXPIRES = "9999-12-31 23:59:59"
 
 
-def is_lifetime(expires_at: Optional[str]) -> bool:
+def is_lifetime(expires_at: str | None) -> bool:
     """True, если подписка бессрочная."""
-    return bool(expires_at) and expires_at >= LIFETIME_EXPIRES[:10]
+    if not expires_at:
+        return False
+    return expires_at[:10] >= LIFETIME_EXPIRES[:10]
 
 
 class _Base:
@@ -50,7 +52,7 @@ class _Base:
 
 class UserRepo(_Base):
     async def get_or_create(
-        self, user_id: int, username: Optional[str], first_name: Optional[str],
+        self, user_id: int, username: str | None, first_name: str | None,
         default_language: str = "ru"
     ) -> dict:
         conn = await self._conn()
@@ -59,7 +61,8 @@ class UserRepo(_Base):
             row = await cur.fetchone()
             if row is None:
                 await conn.execute(
-                    "INSERT INTO users (user_id, username, first_name, language) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO users (user_id, username, first_name, language) "
+                    "VALUES (?, ?, ?, ?)",
                     (user_id, username, first_name, default_language),
                 )
                 await conn.commit()
@@ -67,15 +70,18 @@ class UserRepo(_Base):
                 row = await cur.fetchone()
             else:
                 await conn.execute(
-                    "UPDATE users SET username = ?, first_name = ?, last_seen = ? WHERE user_id = ?",
+                    "UPDATE users SET username = ?, first_name = ?, last_seen = ? "
+                    "WHERE user_id = ?",
                     (username, first_name, _now(), user_id),
                 )
                 await conn.commit()
+            if row is None:
+                raise RuntimeError("Пользователь не найден сразу после вставки")
             return dict(row)
         finally:
             await conn.close()
 
-    async def get(self, user_id: int) -> Optional[dict]:
+    async def get(self, user_id: int) -> dict | None:
         conn = await self._conn()
         try:
             cur = await conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
@@ -87,7 +93,7 @@ class UserRepo(_Base):
     async def set_language(self, user_id: int, lang: str) -> None:
         await self._set(user_id, "language", lang)
 
-    async def set_quality(self, user_id: int, quality: Optional[int]) -> None:
+    async def set_quality(self, user_id: int, quality: int | None) -> None:
         await self._set(user_id, "quality", quality)
 
     async def _set(self, user_id: int, field: str, value: Any) -> None:
@@ -156,7 +162,7 @@ class UserRepo(_Base):
                 ORDER BY u.created_at DESC
                 LIMIT ? OFFSET ?
             """
-            cur = await conn.execute(sql, tuple([_now()] + params + [limit, offset]))
+            cur = await conn.execute(sql, (_now(), *params, limit, offset))
             return [dict(r) for r in await cur.fetchall()], total
         finally:
             await conn.close()
@@ -200,20 +206,7 @@ class UserRepo(_Base):
 
 
 class SubscriptionRepo(_Base):
-    async def deactivate(self, user_id: int) -> int:
-        """Снимает активные подписки пользователя. Возвращает число снятых."""
-        conn = await self._conn()
-        try:
-            cur = await conn.execute(
-                "UPDATE subscriptions SET active = 0 WHERE user_id = ? AND active = 1",
-                (user_id,),
-            )
-            await conn.commit()
-            return cur.rowcount or 0
-        finally:
-            await conn.close()
-
-    async def get_active(self, user_id: int) -> Optional[dict]:
+    async def get_active(self, user_id: int) -> dict | None:
         conn = await self._conn()
         try:
             cur = await conn.execute(
@@ -228,7 +221,7 @@ class SubscriptionRepo(_Base):
 
     async def activate(
         self, user_id: int, plan: str, days: int, source: str,
-        charge_id: Optional[str] = None, lifetime: bool = False,
+        charge_id: str | None = None, lifetime: bool = False,
     ) -> str:
         """Активирует подписку. Если активна — продлевает от текущей даты окончания."""
         conn = await self._conn()
@@ -250,7 +243,7 @@ class SubscriptionRepo(_Base):
                     (user_id,),
                 )
             if base is None:
-                base = datetime.utcnow()
+                base = datetime.now(UTC)
             expires = LIFETIME_EXPIRES if lifetime else (
                 base + timedelta(days=days)
             ).strftime("%Y-%m-%d %H:%M:%S")
@@ -291,17 +284,6 @@ class SubscriptionRepo(_Base):
         finally:
             await conn.close()
 
-    async def deactivate(self, user_id: int) -> None:
-        """Внутреннее снятие флага активности без причины (служебное)."""
-        conn = await self._conn()
-        try:
-            await conn.execute(
-                "UPDATE subscriptions SET active = 0 WHERE user_id = ? AND active = 1", (user_id,)
-            )
-            await conn.commit()
-        finally:
-            await conn.close()
-
     async def expire_due(self) -> int:
         """Помечает просроченные подписки неактивными. Возвращает количество."""
         conn = await self._conn()
@@ -321,7 +303,8 @@ class SubscriptionRepo(_Base):
         conn = await self._conn()
         try:
             cur = await conn.execute(
-                "SELECT COUNT(DISTINCT user_id) FROM subscriptions WHERE active = 1 AND expires_at > ?",
+                "SELECT COUNT(DISTINCT user_id) FROM subscriptions "
+                "WHERE active = 1 AND expires_at > ?",
                 (_now(),),
             )
             row = await cur.fetchone()
@@ -332,21 +315,21 @@ class SubscriptionRepo(_Base):
 
 class UsageRepo(_Base):
     async def add(
-        self, user_id: Optional[int], status: str, plan: str, file_size: int = 0,
+        self, user_id: int | None, status: str, plan: str, file_size: int = 0,
         duration: float = 0.0, fmt: str = "", error: str = "", processing_ms: int = 0
     ) -> None:
         conn = await self._conn()
         try:
             await conn.execute(
-                "INSERT INTO usage (user_id, status, plan, file_size, duration, format, error, processing_ms) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO usage (user_id, status, plan, file_size, duration, "
+                "format, error, processing_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (user_id, status, plan, file_size, duration, fmt, error, processing_ms),
             )
             await conn.commit()
         finally:
             await conn.close()
 
-    async def count_since(self, since: str, status: Optional[str] = None) -> int:
+    async def count_since(self, since: str, status: str | None = None) -> int:
         sql = "SELECT COUNT(*) FROM usage WHERE ts >= ?"
         params: list = [since]
         if status:
@@ -387,7 +370,8 @@ class UsageRepo(_Base):
         conn = await self._conn()
         try:
             cur = await conn.execute(
-                "SELECT AVG(processing_ms) FROM usage WHERE ts >= ? AND status = ? AND processing_ms > 0",
+                "SELECT AVG(processing_ms) FROM usage "
+                "WHERE ts >= ? AND status = ? AND processing_ms > 0",
                 (since, status),
             )
             row = await cur.fetchone()
@@ -397,7 +381,9 @@ class UsageRepo(_Base):
 
     async def total_bytes(self, since: str) -> int:
         return await self._scalar(
-            "SELECT COALESCE(SUM(file_size), 0) FROM usage WHERE ts >= ? AND status = 'ok'", (since,)
+            "SELECT COALESCE(SUM(file_size), 0) FROM usage "
+            "WHERE ts >= ? AND status = 'ok'",
+            (since,),
         )
 
     async def daily_counts(self, days: int = 7) -> list[tuple[str, int]]:
@@ -430,12 +416,14 @@ class UsageRepo(_Base):
                 "SELECT "
                 "  COALESCE(SUM(status = 'ok'), 0) AS ok, "
                 "  COALESCE(SUM(status = 'error'), 0) AS err, "
-                "  COALESCE(SUM(status = 'ok' AND date(ts) = date('now')), 0) AS today, "
+                "  COALESCE(SUM(status = 'ok' AND ts >= date('now')), 0) AS today, "
                 "  MAX(ts) AS last_ts "
                 "FROM usage WHERE user_id = ?",
                 (user_id,),
             )
             row = await cur.fetchone()
+            if row is None:  # без GROUP BY запрос всегда даёт строку
+                return {"ok": 0, "errors": 0, "today": 0, "last_usage": None}
             return {
                 "ok": int(row["ok"] or 0),
                 "errors": int(row["err"] or 0),
@@ -456,7 +444,7 @@ class UsageRepo(_Base):
 
 
 class SettingsRepo(_Base):
-    async def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    async def get(self, key: str, default: str | None = None) -> str | None:
         conn = await self._conn()
         try:
             cur = await conn.execute("SELECT value FROM bot_settings WHERE key = ?", (key,))
@@ -470,7 +458,8 @@ class SettingsRepo(_Base):
         try:
             await conn.execute(
                 "INSERT INTO bot_settings (key, value, updated_at) VALUES (?, ?, ?) "
-                "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value, "
+                "updated_at = excluded.updated_at",
                 (key, value, _now()),
             )
             await conn.commit()
@@ -529,7 +518,8 @@ class PaymentRepo(_Base):
         try:
             try:
                 await conn.execute(
-                    "INSERT INTO payments (user_id, charge_id, plan, days, stars) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO payments (user_id, charge_id, plan, days, stars) "
+                    "VALUES (?, ?, ?, ?, ?)",
                     (user_id, charge_id, plan, days, stars),
                 )
                 await conn.commit()
@@ -539,7 +529,7 @@ class PaymentRepo(_Base):
         finally:
             await conn.close()
 
-    async def total_stars(self, since: Optional[str] = None) -> int:
+    async def total_stars(self, since: str | None = None) -> int:
         conn = await self._conn()
         try:
             if since:
@@ -553,7 +543,7 @@ class PaymentRepo(_Base):
         finally:
             await conn.close()
 
-    async def count(self, since: Optional[str] = None) -> int:
+    async def count(self, since: str | None = None) -> int:
         conn = await self._conn()
         try:
             if since:

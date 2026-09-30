@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 import yaml
 
@@ -40,7 +40,7 @@ DEFAULTS: dict[str, Any] = {
 @dataclass
 class BotConfig:
     token: str
-    admin_ids: List[int] = field(default_factory=list)
+    admin_ids: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -62,11 +62,11 @@ class Config:
     default_language: str = "ru"
 
     @classmethod
-    def load(cls, config_path: Optional[str] = None) -> "Config":
+    def load(cls, config_path: str | None = None) -> "Config":
         data = _deep_copy(DEFAULTS)
 
         if config_path and Path(config_path).exists():
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f) or {}
                 _merge(data, yaml_data)
 
@@ -80,7 +80,7 @@ class Config:
             default_language=data.get("default_language", "ru"),
         )
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         errors = []
         if not self.bot.token:
             errors.append("bot.token не задан в config.yaml")

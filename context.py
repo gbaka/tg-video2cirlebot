@@ -4,19 +4,25 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from aiogram import Bot
 
 from albums import AlbumBuffer
+from channel_checker import ChannelChecker
 from config_loader import Config
 from db import Database
 from locks import UserLocks
 from plans import Plans
 from repositories import (
-    ChannelRepo, PaymentRepo, SettingsRepo, SubscriptionRepo, UsageRepo, UserRepo,
+    ChannelRepo,
+    PaymentRepo,
+    SettingsRepo,
+    SubscriptionRepo,
+    UsageRepo,
+    UserRepo,
 )
 from tasks import JobRunner, TaskRegistry
+from video_converter import VideoConverter
 
 
 @dataclass
@@ -32,15 +38,15 @@ class AppContext:
     payments: PaymentRepo
     tasks: TaskRegistry
     jobs: JobRunner
+    bot: Bot
+    channel_checker: ChannelChecker
+    converter: VideoConverter
     albums: AlbumBuffer = field(default_factory=AlbumBuffer)
     locks: UserLocks = field(default_factory=UserLocks)
-    bot: Optional[Bot] = None
-    channel_checker: object = None      # ChannelChecker, задаётся в main
-    converter: object = None            # VideoConverter, задаётся в main
 
 
 # Синглтон, заполняется в main()
-ctx: Optional[AppContext] = None
+ctx: AppContext | None = None
 
 
 def get_ctx() -> AppContext:

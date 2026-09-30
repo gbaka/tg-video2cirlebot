@@ -1,6 +1,5 @@
 {
   "btn.back": "⬅️ Back",
-  "btn.close": "✖️ Close",
   "btn.howto": "🎬 How to use",
   "btn.subscription": "💳 Subscription",
   "btn.profile": "📊 My profile",
@@ -17,7 +16,6 @@
   "btn.on": "🟢 On",
   "btn.off": "🔴 Off",
   "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nSend a video — I'll turn it into a Telegram video note (circle).\n\nChoose a section:",
-  "menu.main": "🏠 <b>Main menu</b>",
   "info.text": "🎬 <b>How to use</b>\n\n1. Send a video (file, video note or video document).\n2. Wait for the conversion.\n3. Get your circle.\n\n<b>📋 Formats:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob and 30+ more.\n\n<b>⚙️ Telegram limits:</b> the note is square, up to ~60 seconds, H.264/AAC codecs.",
   "help.text": "ℹ️ <b>Help</b>\n\n<b>What the bot does:</b> converts videos into Telegram video notes.\n\n<b>Commands:</b>\n/start — main menu\n/help — this help\n/setlanguage — change language\n\n<b>Plans:</b>\n• Free — basic quality, daily limit\n• Pro — higher quality, bigger limits\n\nOpen “💳 Subscription” for details.\n\n<b>🔒 Privacy:</b> the bot works in private chats only.",
   "sub.title": "💳 <b>Subscription</b>",
@@ -29,7 +27,6 @@
   "sub.no_prices": "\n\nPurchases are temporarily unavailable.",
   "sub.paid_success": "✅ <b>Payment received!</b>\n\nPro subscription is active until <b>{expires}</b>.\nThank you! Higher quality is now available.",
   "sub.payment_error": "❌ Failed to process the payment. If stars were charged, contact the admin.",
-  "sub.pro_log": "Payment: {user} bought Pro for {days}d for {stars} ⭐",
   "profile.title": "📊 <b>Your profile</b>",
   "profile.body": "\n\n🆔 ID: <code>{user_id}</code>\n💼 Plan: {plan}\n🎥 Quality: {quality}\n📅 Conversions today: {today}{today_limit}\n🧮 Total conversions: {total}\n📆 Member since: {created}",
   "profile.quality_fixed": "{res}×{res}",
@@ -83,7 +80,6 @@
   "member.denied": "🚫 <b>Access restricted</b>\n\nJoin our channel/chat to use the bot.",
   "member.join_btn": "Join",
   "member.check": "✅ Check membership",
-  "common.unknown": "Unknown command.",
   "sub.lifetime": "lifetime",
   "conv.album_limit": "❌ Free plan allows up to {limit} videos per message (got {sent}).\n\nGet ⭐ Pro — no such limit.",
   "gift.usage": "🎁 <b>Gift a subscription</b>\n\n<code>/gift &lt;ID&gt; [days|life]</code>\n\nExamples:\n• <code>/gift 123456789</code> — 30 days\n• <code>/gift 123456789 90</code> — 90 days\n• <code>/gift 123456789 life</code> — lifetime",
@@ -98,7 +94,6 @@
   "card.body": "\n\n🆔 <code>{user_id}</code>\n👤 {name}\n🔗 {username}\n🌐 Language: {lang}\n💼 Plan: {plan}\n📅 Subscription until: {expires}\n🎥 Quality: {quality}\n\n📊 Conversions: {total}\n⚠️ Errors: {errors}\n📅 Today: {today}\n🕒 Last seen: {last_seen}\n📆 Registered: {created}",
   "card.btn_gift": "🎁 Gift 30 days",
   "card.btn_revoke": "🚫 Revoke subscription",
-  "users.card_hint": "\n\n💡 Tap a user for details:",
   "sub.buy_btn_life": "⭐ Pro lifetime · {stars} ⭐",
   "btn.export": "📄 Export CSV",
   "sub.already_paid": "ℹ️ This payment was already processed — your subscription is active.",
@@ -114,5 +109,6 @@
   "revoke.usage": "🚫 <b>Cancel a user's subscription</b>\n\n<code>/revoke &lt;ID&gt;</code>\n\nExample: <code>/revoke 123456789</code>",
   "revoke.done": "🚫 Subscription of <code>{user_id}</code> cancelled. It ran until {expires}.",
   "revoke.none": "User <code>{user_id}</code> has no active subscription.",
-  "revoke.bad_args": "❌ Provide a numeric user ID."
+  "revoke.bad_args": "❌ Provide a numeric user ID.",
+  "channel.bad_link": "❌ Could not parse the link. Example: <code>https://t.me/mychat</code> or <code>@mychat</code>"
 }

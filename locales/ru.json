@@ -1,6 +1,5 @@
 {
   "btn.back": "⬅️ Назад",
-  "btn.close": "✖️ Закрыть",
   "btn.howto": "🎬 Как пользоваться",
   "btn.subscription": "💳 Подписка",
   "btn.profile": "📊 Мой профиль",
@@ -17,7 +16,6 @@
   "btn.on": "🟢 Вкл",
   "btn.off": "🔴 Выкл",
   "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nОтправьте видео — я превращу его в кружок (видео-сообщение) Telegram.\n\nВыберите раздел:",
-  "menu.main": "🏠 <b>Главное меню</b>",
   "info.text": "🎬 <b>Как пользоваться</b>\n\n1. Отправьте видео (файл, видео-сообщение или документ с видео).\n2. Дождитесь конвертации.\n3. Получите готовый кружок.\n\n<b>📋 Форматы:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob и 30+ других.\n\n<b>⚙️ Ограничения Telegram:</b> кружок квадратный, до ~60 секунд, кодеки H.264/AAC.",
   "help.text": "ℹ️ <b>Помощь</b>\n\n<b>Что делает бот:</b> конвертирует видео в «кружки» Telegram.\n\n<b>Команды:</b>\n/start — главное меню\n/help — эта справка\n/setlanguage — сменить язык\n\n<b>Тарифы:</b>\n• Free — базовое качество, лимит в день\n• Pro — выше качество, больше лимиты\n\nОткройте «💳 Подписка», чтобы узнать детали.\n\n<b>🔒 Приватность:</b> бот работает только в личных сообщениях.",
   "sub.title": "💳 <b>Подписка</b>",
@@ -29,7 +27,6 @@
   "sub.no_prices": "\n\nПокупка временно недоступна.",
   "sub.paid_success": "✅ <b>Оплата получена!</b>\n\nПодписка Pro активирована до <b>{expires}</b>.\nСпасибо! Теперь вам доступно повышенное качество.",
   "sub.payment_error": "❌ Не удалось обработать платёж. Если звёзды списались — напишите администратору.",
-  "sub.pro_log": "Платёж: {user} приобрёл Pro на {days} дн. за {stars} ⭐",
   "profile.title": "📊 <b>Ваш профиль</b>",
   "profile.body": "\n\n🆔 ID: <code>{user_id}</code>\n💼 Тариф: {plan}\n🎥 Качество: {quality}\n📅 Сегодня конвертаций: {today}{today_limit}\n🧮 Всего конвертаций: {total}\n📆 С нами с: {created}",
   "profile.quality_fixed": "{res}×{res}",
@@ -83,7 +80,6 @@
   "member.denied": "🚫 <b>Доступ ограничен</b>\n\nДля использования бота вступите в наш канал/чат.",
   "member.join_btn": "Вступить",
   "member.check": "✅ Проверить подписку",
-  "common.unknown": "Неизвестная команда.",
   "sub.lifetime": "навсегда",
   "conv.album_limit": "❌ На тарифе Free — максимум {limit} видео в одном сообщении (получено {sent}).\n\nОформите ⭐ Pro — там ограничения нет.",
   "gift.usage": "🎁 <b>Подарить подписку</b>\n\n<code>/gift &lt;ID&gt; [дней|life]</code>\n\nПримеры:\n• <code>/gift 123456789</code> — 30 дней\n• <code>/gift 123456789 90</code> — 90 дней\n• <code>/gift 123456789 life</code> — навсегда",
@@ -98,7 +94,6 @@
   "card.body": "\n\n🆔 <code>{user_id}</code>\n👤 {name}\n🔗 {username}\n🌐 Язык: {lang}\n💼 Тариф: {plan}\n📅 Подписка до: {expires}\n🎥 Качество: {quality}\n\n📊 Конвертаций: {total}\n⚠️ Ошибок: {errors}\n📅 Сегодня: {today}\n🕒 Активность: {last_seen}\n📆 Регистрация: {created}",
   "card.btn_gift": "🎁 Подарить 30 дней",
   "card.btn_revoke": "🚫 Снять подписку",
-  "users.card_hint": "\n\n💡 Нажмите на пользователя для подробностей:",
   "sub.buy_btn_life": "⭐ Pro навсегда · {stars} ⭐",
   "btn.export": "📄 Экспорт CSV",
   "sub.already_paid": "ℹ️ Этот платёж уже обработан — подписка активна.",
@@ -114,5 +109,6 @@
   "revoke.usage": "🚫 <b>Отмена подписки пользователя</b>\n\n<code>/revoke &lt;ID&gt;</code>\n\nПример: <code>/revoke 123456789</code>",
   "revoke.done": "🚫 Подписка пользователя <code>{user_id}</code> отменена. Оставалось до {expires}.",
   "revoke.none": "У пользователя <code>{user_id}</code> нет активной подписки.",
-  "revoke.bad_args": "❌ Укажите ID пользователя числом."
+  "revoke.bad_args": "❌ Укажите ID пользователя числом.",
+  "channel.bad_link": "❌ Не удалось разобрать ссылку. Пример: <code>https://t.me/mychat</code> или <code>@mychat</code>"
 }

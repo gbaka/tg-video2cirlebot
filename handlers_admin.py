@@ -2,24 +2,26 @@
 Админские хендлеры: статистика, задачи, пользователи, настройки, канал.
 """
 
+import contextlib
 import csv
 import logging
 import os
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from html import escape
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, Message
+from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardMarkup, Message
 
 import menus
-from access import ensure_user, is_admin, user_lang
+from access import ensure_user, is_admin
 from context import get_ctx
 from i18n import lang_name, t
 from repositories import _ago, is_lifetime
+from tg import cb_data, cb_message
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -38,7 +40,8 @@ class AdminUsers(StatesGroup):
 
 
 async def _admin_guard(event: Message | CallbackQuery) -> bool:
-    if not is_admin(event.from_user.id):
+    actor = event.from_user
+    if actor is None or not is_admin(actor.id):
         if isinstance(event, CallbackQuery):
             await event.answer(t("ru", "admin.denied"), show_alert=True)
         else:
@@ -55,7 +58,7 @@ async def cb_admin(cb: CallbackQuery) -> None:
         return
     user = await ensure_user(cb)
     lang = user["language"]
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "admin.title"), reply_markup=menus.admin_menu(lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -117,7 +120,7 @@ async def cb_stats(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     text = await _render_stats(lang)
-    await cb.message.edit_text(text, reply_markup=menus.admin_menu(lang), parse_mode="HTML")
+    await cb_message(cb).edit_text(text, reply_markup=menus.admin_menu(lang), parse_mode="HTML")
     await cb.answer()
 
 
@@ -161,7 +164,7 @@ async def cb_tasks(cb: CallbackQuery) -> None:
         return
     user = await ensure_user(cb)
     lang = user["language"]
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         await _render_tasks(lang), reply_markup=menus.admin_menu(lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -177,7 +180,9 @@ async def cmd_tasks(message: Message) -> None:
 
 # ===== Пользователи =====
 
-async def _render_users(lang: str, offset: int, query: str = "") -> tuple[str, object]:
+async def _render_users(
+    lang: str, offset: int, query: str = ""
+) -> tuple[str, InlineKeyboardMarkup]:
     ctx = get_ctx()
     users, total = await ctx.users.search_page(offset, USERS_PAGE_SIZE, query)
 
@@ -217,7 +222,7 @@ async def cb_users(cb: CallbackQuery, state: FSMContext) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     text, markup = await _render_users(lang, 0)
-    await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    await cb_message(cb).edit_text(text, reply_markup=markup, parse_mode="HTML")
     await cb.answer()
 
 
@@ -228,13 +233,13 @@ async def cb_users_page(cb: CallbackQuery, state: FSMContext) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     try:
-        offset = max(0, int(cb.data.split(":")[2]))
+        offset = max(0, int(cb_data(cb).split(":")[2]))
     except (IndexError, ValueError):
         await cb.answer()
         return
     data = await state.get_data()
     text, markup = await _render_users(lang, offset, data.get("query", ""))
-    await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    await cb_message(cb).edit_text(text, reply_markup=markup, parse_mode="HTML")
     await cb.answer()
 
 
@@ -250,7 +255,7 @@ async def cb_users_clear(cb: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     user = await ensure_user(cb)
     text, markup = await _render_users(user["language"], 0)
-    await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    await cb_message(cb).edit_text(text, reply_markup=markup, parse_mode="HTML")
     await cb.answer()
 
 
@@ -261,7 +266,7 @@ async def cb_users_search(cb: CallbackQuery, state: FSMContext) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     await state.set_state(AdminUsers.search)
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         t(lang, "users.search_prompt"),
         reply_markup=menus.users_search_cancel(lang),
         parse_mode="HTML",
@@ -314,7 +319,7 @@ async def cb_botset(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     text, maint, memb = await _render_botset(lang)
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text, reply_markup=menus.bot_settings_menu(lang, maint, memb), parse_mode="HTML"
     )
     await cb.answer()
@@ -327,7 +332,7 @@ async def cb_toggle_setting(cb: CallbackQuery) -> None:
     ctx = get_ctx()
     user = await ensure_user(cb)
     lang = user["language"]
-    key = cb.data.split(":", 1)[1]
+    key = cb_data(cb).split(":", 1)[1]
     mapping = {"maintenance": ("maintenance", False), "membership": ("membership_check", True)}
     if key not in mapping:
         await cb.answer()
@@ -336,7 +341,7 @@ async def cb_toggle_setting(cb: CallbackQuery) -> None:
     current = await ctx.settings.get_bool(setting_key, default)
     await ctx.settings.set(setting_key, "false" if current else "true")
     text, maint, memb = await _render_botset(lang)
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text, reply_markup=menus.bot_settings_menu(lang, maint, memb), parse_mode="HTML"
     )
     await cb.answer("✅")
@@ -355,7 +360,7 @@ async def cb_channel(cb: CallbackQuery) -> None:
     text = t(lang, "channel.title")
     text += t(lang, "channel.current", link=link) if link else t(lang, "channel.not_set")
     text += t(lang, "channel.usage")
-    await cb.message.edit_text(
+    await cb_message(cb).edit_text(
         text, reply_markup=menus.channel_menu(lang), parse_mode="HTML"
     )
     await cb.answer()
@@ -380,8 +385,13 @@ async def cmd_set_channel(message: Message, command: CommandObject) -> None:
     checker = ctx.channel_checker
     old = checker.channel_link
     checker.set_link(args)
+    chat_id = checker.chat_id
+    if chat_id is None:
+        checker.set_link(old)
+        await message.answer(t(lang, "channel.bad_link"), parse_mode="HTML")
+        return
     try:
-        chat = await ctx.bot.get_chat(checker.chat_id)
+        chat = await ctx.bot.get_chat(chat_id)
         await ctx.channel.set_link(args)
         await message.answer(
             f"✅ <b>{chat.title}</b>\n🔗 <code>{args}</code>\n🔐 {chat.type}\n"
@@ -406,8 +416,12 @@ async def cmd_show_channel(message: Message) -> None:
     if not link:
         await message.answer(t(lang, "channel.not_set"), parse_mode="HTML")
         return
+    chat_id = ctx.channel_checker.chat_id
+    if chat_id is None:
+        await message.answer(t(lang, "channel.bad_link"), parse_mode="HTML")
+        return
     try:
-        chat = await ctx.bot.get_chat(ctx.channel_checker.chat_id)
+        chat = await ctx.bot.get_chat(chat_id)
         await message.answer(
             f"📋 <b>{chat.title}</b>\n🔗 <code>{link}</code>\n🆔 <code>{chat.id}</code>\n"
             f"🔐 {chat.type}",
@@ -517,12 +531,14 @@ async def cmd_gift(message: Message, command: CommandObject) -> None:
 
 # ===== Карточка пользователя =====
 
-async def _render_card(lang: str, user_id: int):
-    """Текст и клавиатура карточки пользователя."""
+async def _render_card(
+    lang: str, user_id: int
+) -> tuple[str, InlineKeyboardMarkup] | None:
+    """Текст и клавиатура карточки пользователя, либо None — если такого нет."""
     ctx = get_ctx()
     target = await ctx.users.get(user_id)
     if not target:
-        return None, None
+        return None
 
     sub = await ctx.subs.get_active(user_id)
     stats = await ctx.usage.stats_for_user(user_id)
@@ -544,9 +560,10 @@ async def _render_card(lang: str, user_id: int):
 
 
 async def _refresh_card(cb: CallbackQuery, lang: str, user_id: int) -> None:
-    text, markup = await _render_card(lang, user_id)
-    if text:
-        await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    card = await _render_card(lang, user_id)
+    if card is not None:
+        text, markup = card
+        await cb_message(cb).edit_text(text, reply_markup=markup, parse_mode="HTML")
 
 
 @router.callback_query(F.data.startswith("u:v:"))
@@ -555,17 +572,16 @@ async def cb_user_card(cb: CallbackQuery) -> None:
         return
     admin = await ensure_user(cb)
     lang = admin["language"]
-    user_id = _id_from_cb(cb.data)
+    user_id = _id_from_cb(cb_data(cb))
     if user_id is None:
         await cb.answer()
         return
-    text, markup = await _render_card(lang, user_id)
-    if text is None:
-        await cb.answer(
-            t(lang, "gift.user_not_found", user_id=user_id), show_alert=True
-        )
+    card = await _render_card(lang, user_id)
+    if card is None:
+        await cb.answer(t(lang, "gift.user_not_found", user_id=user_id), show_alert=True)
         return
-    await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    text, markup = card
+    await cb_message(cb).edit_text(text, reply_markup=markup, parse_mode="HTML")
     await cb.answer()
 
 
@@ -575,7 +591,7 @@ async def cb_user_gift(cb: CallbackQuery) -> None:
         return
     admin = await ensure_user(cb)
     lang = admin["language"]
-    user_id = _id_from_cb(cb.data)
+    user_id = _id_from_cb(cb_data(cb))
     if user_id is None:
         await cb.answer()
         return
@@ -600,7 +616,7 @@ async def cb_user_revoke(cb: CallbackQuery) -> None:
         return
     admin = await ensure_user(cb)
     lang = admin["language"]
-    user_id = _id_from_cb(cb.data)
+    user_id = _id_from_cb(cb_data(cb))
     if user_id is None:
         await cb.answer()
         return
@@ -685,7 +701,7 @@ async def _write_csv() -> tuple[str, int]:
     """Выгружает всех пользователей в CSV. Возвращает (путь, число записей)."""
     ctx = get_ctx()
     path = os.path.join(
-        tempfile.gettempdir(), f"users_{datetime.utcnow():%Y%m%d_%H%M%S}.csv"
+        tempfile.gettempdir(), f"users_{datetime.now(UTC):%Y%m%d_%H%M%S}.csv"
     )
     count = 0
     # utf-8-sig + ';' — чтобы Excel корректно открыл русский текст
@@ -718,10 +734,8 @@ async def _send_export(message: Message, lang: str) -> None:
     path, count = await _write_csv()
     if not count:
         await status.edit_text(t(lang, "export.empty"))
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(path)
-        except OSError:
-            pass
         return
 
     try:
@@ -730,14 +744,12 @@ async def _send_export(message: Message, lang: str) -> None:
             FSInputFile(path, filename="users.csv"),
             caption=t(
                 lang, "export.caption",
-                count=count, date=f"{datetime.utcnow():%Y-%m-%d %H:%M}",
+                count=count, date=f"{datetime.now(UTC):%Y-%m-%d %H:%M}",
             ),
         )
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(path)
-        except OSError:
-            pass
 
 
 @router.callback_query(F.data == "a:export")
@@ -746,7 +758,7 @@ async def cb_export(cb: CallbackQuery) -> None:
         return
     admin = await ensure_user(cb)
     await cb.answer()
-    await _send_export(cb.message, admin["language"])
+    await _send_export(cb_message(cb), admin["language"])
 
 
 @router.message(Command("exportusers"), private_chat)

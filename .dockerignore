@@ -29,7 +29,10 @@ Thumbs.db
 # Logs
 *.log
 
-# Test / coverage
+# Test / coverage (в образ не нужны)
+tests/
+pyproject.toml
+requirements-dev.txt
 .coverage
 htmlcov/
 .pytest_cache/
