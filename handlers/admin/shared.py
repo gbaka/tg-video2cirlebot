@@ -14,9 +14,6 @@ from i18n import t
 private_chat = F.chat.type == "private"
 
 USERS_PAGE_SIZE = 10
-EXPORT_PAGE = 500
-GIFT_DEFAULT_DAYS = 30
-LIFETIME_WORDS = {"life", "lifetime", "forever", "навсегда", "вечно"}
 
 
 class AdminUsers(StatesGroup):

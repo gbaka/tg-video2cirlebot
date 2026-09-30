@@ -169,18 +169,57 @@ logging:
 ├── locales/ru.json      # Русские тексты
 ├── locales/en.json      # Английские тексты
 ├── menus.py             # Inline-клавиатуры
-├── handlers_user.py     # Пользовательские хендлеры
-├── handlers_admin.py    # Админские хендлеры
+├── handlers/            # Хендлеры: только ввод/вывод
+│   ├── admin/           #   shared, menu, stats, users, settings, channel, cards, export
+│   └── user/            #   shared, menu, settings, subscription, media
+├── services/            # Бизнес-логика без привязки к интерфейсу
+│   ├── conversion.py    #   конвертация: лимиты, валидация, пайплайн
+│   ├── subscriptions.py #   подарок/отмена подписки, уведомления
+│   └── export.py        #   выгрузка пользователей в CSV
 ├── payments.py          # Telegram Stars (invoice, payload)
 ├── tasks.py             # TaskRegistry + JobRunner
 ├── albums.py            # Буферизация альбомов (media groups)
 ├── locks.py             # Пер-пользовательские блокировки (сериализация видео)
 ├── video_converter.py   # Конвертация через ffmpeg
 ├── channel_checker.py   # Проверка участия в канале/чате
+├── tg.py                # Хелперы aiogram (сужение типов callback-а)
+├── tests/               # pytest: 227 тестов
+├── pyproject.toml       # Настройки ruff / mypy / pytest
 ├── requirements.txt
+├── requirements-dev.txt # pytest, ruff, mypy (в образ не попадают)
 ├── Dockerfile
 └── docker-compose.yml
 ```
+
+### Слои
+
+- **`handlers/`** — разбор события, проверки доступа, отрисовка. Тонкие: вызов
+  сервиса, ответ пользователю.
+- **`services/`** — операции, которые переживут смену интерфейса. Зависят от
+  `context`, репозиториев и i18n, но не от роутеров и меню. Например, выдачу
+  подписки можно вызвать из скрипта обслуживания:
+  `await gift_subscription(ctx, user_id, 30, False)`.
+- **`repositories.py` / `db.py`** — доступ к данным.
+- **`plans.py` / `access.py`** — правила тарифов и прав.
+
+## Разработка
+
+```bash
+python3.12 -m venv .venv && . .venv/bin/activate
+pip install -r requirements-dev.txt
+
+pytest            # тесты
+ruff check .      # линтер + сортировка импортов
+mypy .            # проверка типов
+```
+
+Инструменты включены в `pyproject.toml`; конфигурация тестов там же
+(`asyncio_mode = "auto"` — асинхронные тесты не требуют декораторов).
+
+Что покрыто тестами: локали (паритет, отсутствие мёртвых ключей), тарифы,
+платежи, меню (каждая кнопка обрабатывается ровно одним роутером), альбомы,
+блокировки, схема БД и миграции, репозитории, сервисы (подписки, экспорт),
+конфиг и обработка видео (лимиты, гонка на дневном лимите).
 
 ## Требования к серверу
 

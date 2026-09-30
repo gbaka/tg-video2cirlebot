@@ -1,6 +1,7 @@
 """Заглушки Telegram-объектов: позволяют тестировать хендлеры без сети и ffmpeg."""
 
 from types import SimpleNamespace
+from typing import Any
 
 
 class FakeStatus:
@@ -8,10 +9,12 @@ class FakeStatus:
 
     def __init__(self) -> None:
         self.edits: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
         self.deleted = False
 
-    async def edit_text(self, text: str, **kwargs) -> None:
+    async def edit_text(self, text: str, **kwargs: Any) -> None:
         self.edits.append(text)
+        self.kwargs.append(kwargs)
 
     async def delete(self) -> None:
         self.deleted = True
@@ -32,10 +35,12 @@ class FakeMessage:
         self.video_note = None
         self.document = None
         self.answers: list[str] = []
+        self.answer_kwargs: list[dict[str, Any]] = []
         self.statuses: list[FakeStatus] = []
 
-    async def answer(self, text: str, **kwargs) -> FakeStatus:
+    async def answer(self, text: str, **kwargs: Any) -> FakeStatus:
         self.answers.append(text)
+        self.answer_kwargs.append(kwargs)
         status = FakeStatus()
         self.statuses.append(status)
         return status
@@ -43,7 +48,6 @@ class FakeMessage:
     def lifecycle_touched(self) -> bool:
         """Правки или удаление сообщений — признак жизненного цикла статуса."""
         return any(st.edits or st.deleted for st in self.statuses)
-
 
 
 class FakeUsage:
@@ -59,7 +63,7 @@ class FakeUsage:
 class FakeContext:
     """Минимальный AppContext для проверки логики лимитов."""
 
-    def __init__(self, used: int = 0, locks=None) -> None:
+    def __init__(self, used: int = 0, locks: Any = None) -> None:
         from locks import UserLocks
 
         self.usage = FakeUsage(used)
