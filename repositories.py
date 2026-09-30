@@ -29,6 +29,15 @@ def _future(days: int = 0, hours: int = 0) -> str:
     )
 
 
+# Бессрочная («вечная») подписка — дата в далёком будущем
+LIFETIME_EXPIRES = "9999-12-31 23:59:59"
+
+
+def is_lifetime(expires_at: Optional[str]) -> bool:
+    """True, если подписка бессрочная."""
+    return bool(expires_at) and expires_at >= LIFETIME_EXPIRES[:10]
+
+
 class _Base:
     def __init__(self, db: Database):
         self.db = db
@@ -152,6 +161,34 @@ class UserRepo(_Base):
         finally:
             await conn.close()
 
+    async def export_page(self, offset: int, limit: int) -> list[dict]:
+        """Страница пользователей с тарифом и счётчиками — для выгрузки в CSV."""
+        conn = await self._conn()
+        try:
+            cur = await conn.execute(
+                """
+                SELECT u.user_id, u.username, u.first_name, u.language, u.quality,
+                       u.created_at, u.last_seen,
+                       (SELECT s.plan FROM subscriptions s
+                         WHERE s.user_id = u.user_id AND s.active = 1 AND s.expires_at > ?
+                         ORDER BY s.expires_at DESC LIMIT 1) AS active_plan,
+                       (SELECT s.expires_at FROM subscriptions s
+                         WHERE s.user_id = u.user_id AND s.active = 1 AND s.expires_at > ?
+                         ORDER BY s.expires_at DESC LIMIT 1) AS expires_at,
+                       (SELECT COUNT(*) FROM usage x
+                         WHERE x.user_id = u.user_id AND x.status = 'ok') AS conv_ok,
+                       (SELECT COUNT(*) FROM usage x
+                         WHERE x.user_id = u.user_id AND x.status = 'error') AS conv_err
+                FROM users u
+                ORDER BY u.created_at DESC
+                LIMIT ? OFFSET ?
+                """,
+                (_now(), _now(), limit, offset),
+            )
+            return [dict(r) for r in await cur.fetchall()]
+        finally:
+            await conn.close()
+
     async def _scalar(self, sql: str, params: tuple = ()) -> int:
         conn = await self._conn()
         try:
@@ -163,6 +200,19 @@ class UserRepo(_Base):
 
 
 class SubscriptionRepo(_Base):
+    async def deactivate(self, user_id: int) -> int:
+        """Снимает активные подписки пользователя. Возвращает число снятых."""
+        conn = await self._conn()
+        try:
+            cur = await conn.execute(
+                "UPDATE subscriptions SET active = 0 WHERE user_id = ? AND active = 1",
+                (user_id,),
+            )
+            await conn.commit()
+            return cur.rowcount or 0
+        finally:
+            await conn.close()
+
     async def get_active(self, user_id: int) -> Optional[dict]:
         conn = await self._conn()
         try:
@@ -178,7 +228,7 @@ class SubscriptionRepo(_Base):
 
     async def activate(
         self, user_id: int, plan: str, days: int, source: str,
-        charge_id: Optional[str] = None
+        charge_id: Optional[str] = None, lifetime: bool = False,
     ) -> str:
         """Активирует подписку. Если активна — продлевает от текущей даты окончания."""
         conn = await self._conn()
@@ -189,16 +239,21 @@ class SubscriptionRepo(_Base):
                 (user_id, _now()),
             )
             row = await cur.fetchone()
+            base = None
             if row:
+                # Бессрочную подписку не продлеваем — она уже максимальная
+                if is_lifetime(row["expires_at"]):
+                    return row["expires_at"]
                 base = datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S")
-                # Деактивируем старую запись (заменяется новой с продлённым сроком)
                 await conn.execute(
                     "UPDATE subscriptions SET active = 0 WHERE user_id = ? AND active = 1",
                     (user_id,),
                 )
-            else:
+            if base is None:
                 base = datetime.utcnow()
-            expires = (base + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+            expires = LIFETIME_EXPIRES if lifetime else (
+                base + timedelta(days=days)
+            ).strftime("%Y-%m-%d %H:%M:%S")
             await conn.execute(
                 "INSERT INTO subscriptions (user_id, plan, expires_at, source, charge_id, active) "
                 "VALUES (?, ?, ?, ?, ?, 1)",
@@ -326,6 +381,29 @@ class UsageRepo(_Base):
             )
             row = await cur.fetchone()
             return int(row[0]) if row else 0
+        finally:
+            await conn.close()
+
+    async def stats_for_user(self, user_id: int) -> dict:
+        """Сводка по пользователю для карточки."""
+        conn = await self._conn()
+        try:
+            cur = await conn.execute(
+                "SELECT "
+                "  COALESCE(SUM(status = 'ok'), 0) AS ok, "
+                "  COALESCE(SUM(status = 'error'), 0) AS err, "
+                "  COALESCE(SUM(status = 'ok' AND date(ts) = date('now')), 0) AS today, "
+                "  MAX(ts) AS last_ts "
+                "FROM usage WHERE user_id = ?",
+                (user_id,),
+            )
+            row = await cur.fetchone()
+            return {
+                "ok": int(row["ok"] or 0),
+                "errors": int(row["err"] or 0),
+                "today": int(row["today"] or 0),
+                "last_usage": row["last_ts"],
+            }
         finally:
             await conn.close()
 

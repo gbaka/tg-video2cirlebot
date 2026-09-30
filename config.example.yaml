@@ -26,6 +26,7 @@ plans:
     crf: 24                  # качество (меньше = лучше)
     preset: "fast"
     daily_limit: 5           # конвертаций в день (0 = без лимита)
+    max_album: 3             # видео в одном сообщении (0 = без лимита)
   pro:
     max_size_mb: 200
     max_duration_sec: 60
@@ -34,12 +35,14 @@ plans:
     crf: 20
     preset: "medium"
     daily_limit: 0
+    max_album: 0             # 0 = без ограничения
 
 # Цены в Telegram Stars (XTR)
 prices:
-  - {code: "pro_30d",  plan: "pro", days: 30,  stars: 100}
-  - {code: "pro_90d",  plan: "pro", days: 90,  stars: 250}
-  - {code: "pro_365d", plan: "pro", days: 365, stars: 800}
+  - {code: "pro_30d",  plan: "pro", days: 30, stars: 25}
+  - {code: "pro_90d",  plan: "pro", days: 90, stars: 60}
+  # lifetime: true — бессрочная подписка (days игнорируется)
+  - {code: "pro_life", plan: "pro", days: 0,  stars: 150, lifetime: true}
 
 logging:
   # DEBUG, INFO, WARNING, ERROR

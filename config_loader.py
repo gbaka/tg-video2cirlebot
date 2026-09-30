@@ -19,17 +19,19 @@ DEFAULTS: dict[str, Any] = {
     "plans": {
         "free": {
             "max_size_mb": 50, "max_duration_sec": 60, "resolutions": [360],
-            "default_resolution": 360, "crf": 24, "preset": "fast", "daily_limit": 5,
+            "default_resolution": 360, "crf": 24, "preset": "fast",
+            "daily_limit": 5, "max_album": 3,
         },
         "pro": {
             "max_size_mb": 200, "max_duration_sec": 60, "resolutions": [360, 480, 640],
-            "default_resolution": 480, "crf": 20, "preset": "medium", "daily_limit": 0,
+            "default_resolution": 480, "crf": 20, "preset": "medium",
+            "daily_limit": 0, "max_album": 0,
         },
     },
     "prices": [
-        {"code": "pro_30d", "plan": "pro", "days": 30, "stars": 100},
-        {"code": "pro_90d", "plan": "pro", "days": 90, "stars": 250},
-        {"code": "pro_365d", "plan": "pro", "days": 365, "stars": 800},
+        {"code": "pro_30d", "plan": "pro", "days": 30, "stars": 25},
+        {"code": "pro_90d", "plan": "pro", "days": 90, "stars": 60},
+        {"code": "pro_life", "plan": "pro", "days": 0, "stars": 150, "lifetime": True},
     ],
     "logging": {"level": "INFO"},
 }
@@ -99,6 +101,7 @@ def _build_plans(data: dict) -> Plans:
             crf=int(cfg.get("crf", 24)),
             preset=str(cfg.get("preset", "fast")),
             daily_limit=int(cfg.get("daily_limit", 0)),
+            max_album=int(cfg.get("max_album", 1)),
         )
 
     free = make("free", data["plans"]["free"])
@@ -108,7 +111,8 @@ def _build_plans(data: dict) -> Plans:
     for p in data.get("prices", []):
         prices.append(PriceOption(
             code=str(p["code"]), plan=str(p["plan"]),
-            days=int(p["days"]), stars=int(p["stars"]),
+            days=int(p.get("days", 0)), stars=int(p["stars"]),
+            lifetime=bool(p.get("lifetime", False)),
         ))
     return Plans(free=free, pro=pro, prices=prices)
 

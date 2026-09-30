@@ -2,7 +2,10 @@
 Админские хендлеры: статистика, задачи, пользователи, настройки, канал.
 """
 
+import csv
 import logging
+import os
+import tempfile
 from datetime import datetime
 from html import escape
 
@@ -10,13 +13,13 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 import menus
 from access import ensure_user, is_admin, user_lang
 from context import get_ctx
-from i18n import t
-from repositories import _ago
+from i18n import lang_name, t
+from repositories import _ago, is_lifetime
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -24,6 +27,9 @@ router = Router()
 private_chat = F.chat.type == "private"
 
 USERS_PAGE_SIZE = 10
+EXPORT_PAGE = 500
+GIFT_DEFAULT_DAYS = 30
+LIFETIME_WORDS = {"life", "lifetime", "forever", "навсегда", "вечно"}
 
 
 class AdminUsers(StatesGroup):
@@ -143,6 +149,9 @@ async def _render_tasks(lang: str) -> str:
     for job in ctx.jobs.jobs:
         last = job.last_run.strftime("%H:%M:%S") if job.last_run else t(lang, "tasks.job_never")
         text += t(lang, "tasks.job_item", name=job.name, runs=job.runs, last=last)
+    pending = ctx.albums.pending()
+    if pending:
+        text += t(lang, "tasks.albums", count=pending)
     return text
 
 
@@ -196,7 +205,7 @@ async def _render_users(lang: str, offset: int, query: str = "") -> tuple[str, o
         shown_to = offset + len(users)
         text += t(lang, "users.showing", start=shown_from, end=shown_to, total=total)
 
-    markup = menus.users_page_menu(lang, offset, USERS_PAGE_SIZE, total, query)
+    markup = menus.users_page_menu(lang, offset, USERS_PAGE_SIZE, total, query, users)
     return text, markup
 
 
@@ -426,3 +435,279 @@ async def cmd_clear_channel(message: Message) -> None:
     checker._channel_username = None
     checker._parse_channel_link()
     await message.answer("✅ Проверка подписки отключена.")
+
+
+# ===== Вспомогательное: подписка в подарок =====
+
+def _expires_label(lang: str, expires_at: str | None) -> str:
+    """Человекочитаемый срок действия подписки."""
+    if not expires_at:
+        return "—"
+    return t(lang, "sub.lifetime") if is_lifetime(expires_at) else expires_at[:10]
+
+
+def _id_from_cb(data: str) -> int | None:
+    """Достаёт user_id из callback_data вида 'u:xx:<id>'."""
+    try:
+        return int(data.split(":")[2])
+    except (IndexError, ValueError):
+        return None
+
+
+async def _gift_subscription(user_id: int, days: int | None, lifetime: bool) -> str | None:
+    """Активирует Pro в подарок. None — если пользователь боту не писал."""
+    ctx = get_ctx()
+    if not await ctx.users.get(user_id):
+        return None
+    return await ctx.subs.activate(
+        user_id=user_id, plan="pro",
+        days=days if days is not None else GIFT_DEFAULT_DAYS,
+        source="gift", lifetime=lifetime,
+    )
+
+
+async def _notify_gift(user_id: int, shown: str) -> None:
+    """Сообщает получателю о подарке; неудача не критична."""
+    ctx = get_ctx()
+    target = await ctx.users.get(user_id)
+    tlang = (target or {}).get("language") or "ru"
+    try:
+        await ctx.bot.send_message(
+            user_id, t(tlang, "gift.notify", expires=shown), parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.info("Не удалось уведомить %s о подарке: %s", user_id, e)
+
+
+def _parse_gift_args(args: list[str]) -> tuple[int, int | None, bool] | None:
+    """'/gift <ID> [дней|life]' → (user_id, days, lifetime) либо None."""
+    if not args or not args[0].lstrip("-").isdigit():
+        return None
+    user_id = int(args[0])
+    if len(args) == 1:
+        return user_id, None, False
+    second = args[1].lower()
+    if second in LIFETIME_WORDS:
+        return user_id, None, True
+    if not second.isdigit():
+        return None
+    days = int(second)
+    return user_id, (days if days >= 1 else GIFT_DEFAULT_DAYS), False
+
+
+@router.message(Command("gift"), private_chat)
+async def cmd_gift(message: Message, command: CommandObject) -> None:
+    if not await _admin_guard(message):
+        return
+    admin = await ensure_user(message)
+    lang = admin["language"]
+
+    parsed = _parse_gift_args((command.args or "").split())
+    if parsed is None:
+        key = "gift.usage" if not (command.args or "").strip() else "gift.bad_args"
+        await message.answer(t(lang, key), parse_mode="HTML")
+        return
+
+    user_id, days, lifetime = parsed
+    expires = await _gift_subscription(user_id, days, lifetime)
+    if expires is None:
+        await message.answer(
+            t(lang, "gift.user_not_found", user_id=user_id), parse_mode="HTML"
+        )
+        return
+
+    shown = _expires_label(lang, expires)
+    await message.answer(
+        t(lang, "gift.success", user_id=user_id, expires=shown), parse_mode="HTML"
+    )
+    logger.info("Админ %s подарил Pro → %s (lifetime=%s)", admin["user_id"], user_id, lifetime)
+    await _notify_gift(user_id, shown)
+
+
+# ===== Карточка пользователя =====
+
+async def _render_card(lang: str, user_id: int):
+    """Текст и клавиатура карточки пользователя."""
+    ctx = get_ctx()
+    target = await ctx.users.get(user_id)
+    if not target:
+        return None, None
+
+    sub = await ctx.subs.get_active(user_id)
+    stats = await ctx.usage.stats_for_user(user_id)
+    is_pro = bool(sub)
+    text = t(lang, "card.title") + t(
+        lang, "card.body",
+        user_id=user_id,
+        name=escape(target.get("first_name") or "—"),
+        username=("@" + target["username"]) if target.get("username") else "—",
+        lang=lang_name(target.get("language") or "ru"),
+        plan="⭐ Pro" if is_pro else "Free",
+        expires=_expires_label(lang, sub["expires_at"] if sub else None),
+        quality=target.get("quality") or "—",
+        total=stats["ok"], errors=stats["errors"], today=stats["today"],
+        last_seen=(target.get("last_seen") or "—")[:16],
+        created=(target.get("created_at") or "—")[:10],
+    )
+    return text, menus.user_card_menu(lang, user_id, is_pro)
+
+
+async def _refresh_card(cb: CallbackQuery, lang: str, user_id: int) -> None:
+    text, markup = await _render_card(lang, user_id)
+    if text:
+        await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("u:v:"))
+async def cb_user_card(cb: CallbackQuery) -> None:
+    if not await _admin_guard(cb):
+        return
+    admin = await ensure_user(cb)
+    lang = admin["language"]
+    user_id = _id_from_cb(cb.data)
+    if user_id is None:
+        await cb.answer()
+        return
+    text, markup = await _render_card(lang, user_id)
+    if text is None:
+        await cb.answer(
+            t(lang, "gift.user_not_found", user_id=user_id), show_alert=True
+        )
+        return
+    await cb.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("u:gf:"))
+async def cb_user_gift(cb: CallbackQuery) -> None:
+    if not await _admin_guard(cb):
+        return
+    admin = await ensure_user(cb)
+    lang = admin["language"]
+    user_id = _id_from_cb(cb.data)
+    if user_id is None:
+        await cb.answer()
+        return
+
+    expires = await _gift_subscription(user_id, None, False)
+    if expires is None:
+        await cb.answer(
+            t(lang, "gift.user_not_found", user_id=user_id), show_alert=True
+        )
+        return
+
+    shown = _expires_label(lang, expires)
+    await cb.answer(t(lang, "gift.success", user_id=user_id, expires=shown), show_alert=True)
+    logger.info("Админ %s подарил Pro → %s", admin["user_id"], user_id)
+    await _notify_gift(user_id, shown)
+    await _refresh_card(cb, lang, user_id)
+
+
+@router.callback_query(F.data.startswith("u:rv:"))
+async def cb_user_revoke(cb: CallbackQuery) -> None:
+    if not await _admin_guard(cb):
+        return
+    ctx = get_ctx()
+    admin = await ensure_user(cb)
+    lang = admin["language"]
+    user_id = _id_from_cb(cb.data)
+    if user_id is None:
+        await cb.answer()
+        return
+
+    removed = await ctx.subs.deactivate(user_id)
+    await cb.answer(
+        t(lang, "gift.revoked", user_id=user_id) if removed else "—", show_alert=True
+    )
+    logger.info("Админ %s снял подписку с %s", admin["user_id"], user_id)
+    await _refresh_card(cb, lang, user_id)
+
+
+# ===== Экспорт пользователей в CSV =====
+
+CSV_HEADERS = [
+    "user_id", "username", "first_name", "language", "quality", "plan",
+    "expires_at", "created_at", "last_seen", "conversions_ok", "conversions_error",
+]
+
+
+def _csv_expires(value: str | None) -> str:
+    if not value:
+        return ""
+    return "lifetime" if is_lifetime(value) else value[:10]
+
+
+async def _write_csv() -> tuple[str, int]:
+    """Выгружает всех пользователей в CSV. Возвращает (путь, число записей)."""
+    ctx = get_ctx()
+    path = os.path.join(
+        tempfile.gettempdir(), f"users_{datetime.utcnow():%Y%m%d_%H%M%S}.csv"
+    )
+    count = 0
+    # utf-8-sig + ';' — чтобы Excel корректно открыл русский текст
+    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+        writer = csv.writer(fh, delimiter=";")
+        writer.writerow(CSV_HEADERS)
+        offset = 0
+        while True:
+            rows = await ctx.users.export_page(offset, EXPORT_PAGE)
+            if not rows:
+                break
+            for r in rows:
+                writer.writerow([
+                    r["user_id"], r.get("username") or "", r.get("first_name") or "",
+                    r.get("language") or "", r.get("quality") or "",
+                    r.get("active_plan") or "free",
+                    _csv_expires(r.get("expires_at")),
+                    (r.get("created_at") or "")[:19], (r.get("last_seen") or "")[:19],
+                    r.get("conv_ok") or 0, r.get("conv_err") or 0,
+                ])
+            count += len(rows)
+            offset += EXPORT_PAGE
+            if len(rows) < EXPORT_PAGE:
+                break
+    return path, count
+
+
+async def _send_export(message: Message, lang: str) -> None:
+    status = await message.answer(t(lang, "export.generating"))
+    path, count = await _write_csv()
+    if not count:
+        await status.edit_text(t(lang, "export.empty"))
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        return
+
+    try:
+        await status.delete()
+        await message.answer_document(
+            FSInputFile(path, filename="users.csv"),
+            caption=t(
+                lang, "export.caption",
+                count=count, date=f"{datetime.utcnow():%Y-%m-%d %H:%M}",
+            ),
+        )
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+@router.callback_query(F.data == "a:export")
+async def cb_export(cb: CallbackQuery) -> None:
+    if not await _admin_guard(cb):
+        return
+    admin = await ensure_user(cb)
+    await cb.answer()
+    await _send_export(cb.message, admin["language"])
+
+
+@router.message(Command("exportusers"), private_chat)
+async def cmd_export_users(message: Message) -> None:
+    if not await _admin_guard(message):
+        return
+    admin = await ensure_user(message)
+    await _send_export(message, admin["language"])

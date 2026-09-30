@@ -17,6 +17,7 @@ class Plan:
     crf: int
     preset: str
     daily_limit: int = 0          # 0 = без ограничения
+    max_album: int = 1            # видео в одном сообщении, 0 = без ограничения
 
     @property
     def max_size_bytes(self) -> int:
@@ -24,6 +25,9 @@ class Plan:
 
     def is_unlimited(self) -> bool:
         return self.daily_limit <= 0
+
+    def album_unlimited(self) -> bool:
+        return self.max_album <= 0
 
     def normalize_resolution(self, requested: Optional[int]) -> int:
         """Возвращает допустимое разрешение (ближайшее из доступных)."""
@@ -44,6 +48,7 @@ class PriceOption:
     days: int
     stars: int
     label: str = ""      # отображаемое название (i18n или plain)
+    lifetime: bool = False   # бессрочная подписка
 
 
 class Plans:

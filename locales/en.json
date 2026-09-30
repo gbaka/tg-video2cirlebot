@@ -16,49 +16,38 @@
   "btn.channel": "📢 Channel",
   "btn.on": "🟢 On",
   "btn.off": "🔴 Off",
-
   "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nSend a video — I'll turn it into a Telegram video note (circle).\n\nChoose a section:",
   "menu.main": "🏠 <b>Main menu</b>",
   "menu.admin_title": "👑 <b>Admin menu</b>\n\nChoose a section:",
-
-  "info.text": "🎬 <b>How to use</b>\n\n1. Send a video (file, video note or video document).\n2. Wait for the conversion.\n3. Get your circle.\n\n<b>📋 Formats:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob and 30+ more (via ffmpeg).\n\n<b>⚙️ Telegram limits:</b> the note is square, up to ~60 seconds, H.264/AAC codecs.",
-
+  "info.text": "🎬 <b>How to use</b>\n\n1. Send a video (file, video note or video document).\n2. Wait for the conversion.\n3. Get your circle.\n\n<b>📋 Formats:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob and 30+ more.\n\n<b>⚙️ Telegram limits:</b> the note is square, up to ~60 seconds, H.264/AAC codecs.",
   "help.text": "ℹ️ <b>Help</b>\n\n<b>What the bot does:</b> converts videos into Telegram video notes.\n\n<b>Commands:</b>\n/start — main menu\n/help — this help\n/setlanguage — change language\n\n<b>Plans:</b>\n• Free — basic quality, daily limit\n• Pro — higher quality, bigger limits\n\nOpen “💳 Subscription” for details.\n\n<b>🔒 Privacy:</b> the bot works in private chats only.",
-
   "sub.title": "💳 <b>Subscription</b>",
-  "sub.current_free": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: {limit} conversions per day",
-  "sub.current_free_unlimited": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: unlimited",
-  "sub.current_pro": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Valid until: <b>{expires}</b>",
-  "sub.current_pro_unlimited": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Valid until: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: {limit} conversions per day\n• Per message: up to {album} videos",
+  "sub.current_free_unlimited": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: unlimited\n• Per message: up to {album} videos",
+  "sub.current_pro": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Per message: unlimited\n• Valid: <b>{expires}</b>",
+  "sub.current_pro_unlimited": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Per message: unlimited\n• Valid: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Get / extend Pro:</b>",
   "sub.buy_btn": "Pro · {days}d · {stars} ⭐",
   "sub.no_prices": "\n\nPurchases are temporarily unavailable.",
   "sub.paid_success": "✅ <b>Payment received!</b>\n\nPro subscription is active until <b>{expires}</b>.\nThank you! Higher quality is now available.",
   "sub.payment_error": "❌ Failed to process the payment. If stars were charged, contact the admin.",
   "sub.pro_log": "Payment: {user} bought Pro for {days}d for {stars} ⭐",
-
   "profile.title": "📊 <b>Your profile</b>",
   "profile.body": "\n\n🆔 ID: <code>{user_id}</code>\n💼 Plan: {plan}\n🎥 Quality: {quality}\n📅 Conversions today: {today}{today_limit}\n🧮 Total conversions: {total}\n📆 Member since: {created}",
   "profile.quality_fixed": "{res}×{res}",
   "profile.quality_selectable": "{res}×{res} (selectable)",
   "profile.today_limit": " / {limit}",
-
   "settings.title": "⚙️ <b>Settings</b>\n\n🌐 Language: {lang}\n🎥 Quality: {quality}",
   "settings.quality_locked": "\n\n🎥 Quality is available on the ⭐ Pro plan.",
-
   "lang.title": "🌐 <b>Choose language</b>\n\n🇷🇺 Русский / 🇬🇧 English",
   "lang.changed": "✅ Language changed: {lang}",
-
   "quality.title": "🎥 <b>Video note quality</b>\n\nChoose a resolution (available on ⭐ Pro):",
   "quality.current": "✅ Current quality: {res}×{res}",
   "quality.changed": "✅ Quality changed: {res}×{res}",
-
   "admin.title": "👑 <b>Admin menu</b>\n\nChoose a section:",
   "admin.denied": "⛔ Admin rights required.",
-
   "stats.title": "📈 <b>Statistics</b>",
   "stats.body": "\n\n<b>👥 Users</b>\n• Total: {users_total}\n• New today: {users_new_day}\n• New this week: {users_new_week}\n• Active today: {users_active_day}\n\n<b>🎬 Conversions</b>\n• Total: {conv_total}\n• Today: {conv_day}\n• This week: {conv_week}\n• Errors this week: {errors_week}\n• Avg time: {avg_time} s\n• Processed: {total_mb} MB\n\n<b>⭐ Subscriptions</b>\n• Active Pro: {subs_active}\n• Payments: {pay_count}\n• Stars earned: {stars_total}\n\n<b>📁 Top formats:</b>\n{top_formats}\n\n<b>📅 By day:</b>\n{daily}",
-
   "tasks.title": "📋 <b>Bot tasks</b>",
   "tasks.active_title": "\n\n<b>⚙️ Active conversions:</b> {n}",
   "tasks.active_item": "\n• <code>{user}</code> — {name} ({size} MB), {elapsed}s",
@@ -66,15 +55,12 @@
   "tasks.job_item": "\n• {name}: {runs} runs, last at {last}",
   "tasks.job_never": "not run yet",
   "tasks.none": "\n\nNo active conversions right now.",
-
   "botset.title": "⚙️ <b>Bot settings</b>",
   "botset.body": "\n\n🔧 Maintenance mode: {maintenance}\n🔐 Membership check: {membership}\n\n<i>Maintenance mode blocks conversion for everyone except admins. Membership check requires joining the channel.</i>",
-
   "channel.title": "📢 <b>Channel for membership check</b>",
   "channel.current": "\n\nCurrent: <code>{link}</code>",
   "channel.not_set": "\n\nNo channel set — membership check is disabled.",
   "channel.usage": "\n\n<b>Change channel:</b>\n<code>/setchannel &lt;link&gt;</code>\n\n<b>Formats:</b>\n• <code>@username</code>\n• <code>-1001234567890</code>\n• <code>https://t.me/username</code>\n• <code>https://t.me/c/1234567890</code>\n\n<b>Disable:</b> /clearchannel",
-
   "users.title": "👥 <b>Users</b>",
   "users.body": "\n\nTotal: {total}\nNew today: {new_day}",
   "users.item": "\n\n🆔 <code>{user_id}</code> — {name}\n   {plan}, since {created}",
@@ -85,7 +71,6 @@
   "users.search_btn": "🔍 Search",
   "users.search_prompt": "🔍 Enter user ID or @username (partial name allowed):",
   "users.clear": "✖️ Clear search",
-
   "conv.downloading": "⏳ Downloading video…",
   "conv.converting": "🔄 Converting to a circle…",
   "conv.uploading": "📤 Uploading the circle…",
@@ -97,11 +82,32 @@
   "conv.duration_hint": "❌ The video doesn't fit a circle (max ~60 seconds).",
   "conv.maintenance": "🔧 <b>Maintenance</b>\n\nSorry, conversion is temporarily unavailable. Please try later.",
   "conv.send_video": "📹 Send a video file, video note or video document — I'll make a circle.",
-
   "member.denied": "🚫 <b>Access restricted</b>\n\nJoin our channel/chat to use the bot.",
   "member.join_btn": "Join",
   "member.check": "✅ Check membership",
-
   "common.admin_only": "⛔ Admin rights required.",
-  "common.unknown": "Unknown command."
+  "common.unknown": "Unknown command.",
+  "sub.lifetime": "lifetime",
+  "common.forever": "lifetime",
+  "conv.album_limit": "❌ Free plan allows up to {limit} videos per message (got {sent}).\n\nGet ⭐ Pro — no such limit.",
+  "gift.usage": "🎁 <b>Gift a subscription</b>\n\n<code>/gift &lt;ID&gt; [days|life]</code>\n\nExamples:\n• <code>/gift 123456789</code> — 30 days\n• <code>/gift 123456789 90</code> — 90 days\n• <code>/gift 123456789 life</code> — lifetime",
+  "gift.success": "🎁 Pro subscription gifted to <code>{user_id}</code> until <b>{expires}</b>.",
+  "gift.user_not_found": "❌ User <code>{user_id}</code> not found in the database.\nThey must have started the bot at least once.",
+  "gift.bad_args": "❌ Invalid arguments. Provide a numeric user ID.",
+  "gift.notify": "🎁 <b>You have been gifted a Pro subscription!</b>\n\nValid until <b>{expires}</b>. Enjoy higher quality!",
+  "gift.revoked": "🚫 Subscription of <code>{user_id}</code> revoked.",
+  "export.generating": "⏳ Building CSV…",
+  "export.caption": "📄 Users export\n👥 Rows: {count}\n🕒 {date}",
+  "export.empty": "📭 No users to export.",
+  "card.title": "👤 <b>User card</b>",
+  "card.body": "\n\n🆔 <code>{user_id}</code>\n👤 {name}\n🔗 {username}\n🌐 Language: {lang}\n💼 Plan: {plan}\n📅 Subscription until: {expires}\n🎥 Quality: {quality}\n\n📊 Conversions: {total}\n⚠️ Errors: {errors}\n📅 Today: {today}\n🕒 Last seen: {last_seen}\n📆 Registered: {created}",
+  "card.btn_gift": "🎁 Gift 30 days",
+  "card.btn_revoke": "🚫 Revoke subscription",
+  "card.btn_export": "📄 Export CSV",
+  "users.card_hint": "\n\n💡 Tap a user for details:",
+  "sub.buy_btn_life": "⭐ Pro lifetime · {stars} ⭐",
+  "btn.export": "📄 Export CSV",
+  "sub.already_paid": "ℹ️ This payment was already processed — your subscription is active.",
+  "tasks.albums": "\n\n📦 Albums buffered: {count}",
+  "help.admin": "\n\n<b>👑 Admin commands</b>\n<code>/admin</code> — admin menu\n<code>/stats</code> — statistics\n<code>/tasks</code> — active and background tasks\n<code>/finduser &lt;ID|@username&gt;</code> — find a user\n<code>/gift &lt;ID&gt; [days|life]</code> — gift Pro\n<code>/exportusers</code> — export users to CSV\n<code>/setchannel &lt;link&gt;</code> — change the membership channel\n<code>/channel</code> — current channel\n<code>/clearchannel</code> — disable the membership check"
 }

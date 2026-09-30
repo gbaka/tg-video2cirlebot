@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_seen   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_users_created ON users(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
 CREATE TABLE IF NOT EXISTS subscriptions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,6 +37,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     active      INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id, active);
+CREATE INDEX IF NOT EXISTS idx_sub_expires ON subscriptions(expires_at);
 
 CREATE TABLE IF NOT EXISTS usage (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +53,8 @@ CREATE TABLE IF NOT EXISTS usage (
 );
 CREATE INDEX IF NOT EXISTS idx_usage_ts ON usage(ts);
 CREATE INDEX IF NOT EXISTS idx_usage_user ON usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_user_ts ON usage(user_id, ts);
+CREATE INDEX IF NOT EXISTS idx_usage_status_ts ON usage(status, ts);
 
 CREATE TABLE IF NOT EXISTS bot_settings (
     key        TEXT PRIMARY KEY,
@@ -70,6 +76,8 @@ CREATE TABLE IF NOT EXISTS payments (
     stars       INTEGER,
     ts          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_ts ON payments(ts);
 """
 
 

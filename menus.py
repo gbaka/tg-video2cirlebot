@@ -53,6 +53,7 @@ def admin_menu(lang: str) -> InlineKeyboardMarkup:
         [_btn(t(lang, "btn.stats"), "a:stats")],
         [_btn(t(lang, "btn.users"), "a:users")],
         [_btn(t(lang, "btn.tasks"), "a:tasks")],
+        [_btn(t(lang, "btn.export"), "a:export")],
         [_btn(t(lang, "btn.bot_settings"), "a:bset")],
         [_btn(t(lang, "btn.channel"), "a:chan")],
         [_btn(t(lang, "btn.back"), "m:main")],
@@ -62,11 +63,19 @@ def admin_menu(lang: str) -> InlineKeyboardMarkup:
 def subscription_menu(lang: str, prices: list[PriceOption]) -> InlineKeyboardMarkup:
     rows = []
     for p in prices:
-        rows.append([_btn(
-            t(lang, "sub.buy_btn", days=p.days, stars=p.stars),
-            f"b:{p.code}",
-        )])
+        label = (t(lang, "sub.buy_btn_life", stars=p.stars) if p.lifetime
+                 else t(lang, "sub.buy_btn", days=p.days, stars=p.stars))
+        rows.append([_btn(label, f"b:{p.code}")])
     rows.append([_btn(t(lang, "btn.back"), "m:main")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def user_card_menu(lang: str, user_id: int, is_pro: bool) -> InlineKeyboardMarkup:
+    """Действия с конкретным пользователем."""
+    rows = [[_btn(t(lang, "card.btn_gift"), f"u:gf:{user_id}")]]
+    if is_pro:
+        rows.append([_btn(t(lang, "card.btn_revoke"), f"u:rv:{user_id}")])
+    rows.append([_btn(t(lang, "btn.back"), "a:users")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -115,11 +124,18 @@ def channel_menu(lang: str) -> InlineKeyboardMarkup:
 
 
 def users_page_menu(
-    lang: str, offset: int, page_size: int, total: int, query: str = ""
+    lang: str, offset: int, page_size: int, total: int,
+    query: str = "", users: list[dict] | None = None,
 ) -> InlineKeyboardMarkup:
-    """Навигация по списку пользователей: пагинация + поиск."""
+    """Навигация по списку пользователей: карточки, пагинация, поиск."""
     pages = max(1, (total + page_size - 1) // page_size)
     page = offset // page_size + 1
+
+    rows = []
+    for u in (users or []):
+        name = u.get("first_name") or u.get("username") or str(u["user_id"])
+        star = "⭐ " if u.get("active_plan") else ""
+        rows.append([_btn(f"{star}{u['user_id']} · {name}"[:40], f"u:v:{u['user_id']}")])
 
     nav: list[InlineKeyboardButton] = []
     if offset > 0:
@@ -127,12 +143,13 @@ def users_page_menu(
     nav.append(_btn(t(lang, "users.page", page=page, pages=pages), "u:noop"))
     if offset + page_size < total:
         nav.append(_btn("➡️", f"u:p:{offset + page_size}"))
+    rows.append(nav)
 
-    rows = [nav]
     if query:
         rows.append([_btn(t(lang, "users.clear"), "u:clr")])
     else:
         rows.append([_btn(t(lang, "users.search_btn"), "u:srch")])
+    rows.append([_btn(t(lang, "btn.export"), "a:export")])
     rows.append([_btn(t(lang, "btn.back"), "m:admin")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

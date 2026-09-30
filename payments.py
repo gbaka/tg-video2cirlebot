@@ -21,7 +21,7 @@ STARS_CURRENCY = "XTR"
 
 
 def make_payload(price: PriceOption) -> str:
-    return f"sub|{price.code}|{price.plan}|{price.days}|{price.stars}"
+    return f"sub|{price.code}|{price.plan}|{price.days}|{price.stars}|{1 if price.lifetime else 0}"
 
 
 def parse_payload(payload: str) -> Optional[dict]:
@@ -29,11 +29,15 @@ def parse_payload(payload: str) -> Optional[dict]:
     if not payload or not payload.startswith("sub|"):
         return None
     parts = payload.split("|")
-    if len(parts) != 5:
+    if len(parts) not in (5, 6):        # 5 — счета, отправленные до появления lifetime
         return None
-    _, code, plan, days, stars = parts
+    lifetime = bool(int(parts[5])) if len(parts) == 6 and parts[5].isdigit() else False
+    _, code, plan, days, stars = parts[:5]
     try:
-        return {"code": code, "plan": plan, "days": int(days), "stars": int(stars)}
+        return {
+            "code": code, "plan": plan, "days": int(days),
+            "stars": int(stars), "lifetime": lifetime,
+        }
     except ValueError:
         return None
 

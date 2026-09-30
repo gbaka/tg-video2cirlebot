@@ -23,6 +23,7 @@ from access import (
 from context import get_ctx
 from i18n import SUPPORTED, lang_name, t
 from payments import parse_payload, send_subscription_invoice
+from repositories import is_lifetime
 from video_converter import VideoConverter
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,14 @@ async def cmd_menu(message: Message) -> None:
     await _show_main(message, user)
 
 
+def _help_text(lang: str, user: dict) -> str:
+    """Справка; админские команды показываем только администраторам."""
+    text = t(lang, "help.text")
+    if is_admin(user.get("user_id")):
+        text += t(lang, "help.admin")
+    return text
+
+
 @router.message(Command("help"), private_chat)
 async def cmd_help(message: Message) -> None:
     user = await ensure_user(message)
@@ -93,7 +102,7 @@ async def cmd_help(message: Message) -> None:
     if not await _guard(message, lang):
         return
     await message.answer(
-        t(lang, "help.text"),
+        _help_text(lang, user),
         reply_markup=menus.back_main(lang),
         parse_mode="HTML",
     )
@@ -134,7 +143,7 @@ async def cb_help(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
     lang = user["language"]
     await cb.message.edit_text(
-        t(lang, "help.text"), reply_markup=menus.back_main(lang), parse_mode="HTML"
+        _help_text(lang, user), reply_markup=menus.back_main(lang), parse_mode="HTML"
     )
     await cb.answer()
 
@@ -279,15 +288,18 @@ async def cb_subscription(cb: CallbackQuery) -> None:
     free, pro = ctx.plans.free, ctx.plans.pro
 
     if plan.code == "pro":
+        expires = t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"] if sub else None) \
+            else (sub["expires_at"][:10] if sub else "—")
         text = t(lang, "sub.title") + t(
             lang, "sub.current_pro",
             maxres=max(pro.resolutions), size=pro.max_size_mb,
-            expires=(sub["expires_at"][:10] if sub else "—"),
+            expires=expires,
         )
     else:
         text = t(lang, "sub.title") + t(
             lang, "sub.current_free" if not free.is_unlimited() else "sub.current_free_unlimited",
             res=free.default_resolution, size=free.max_size_mb, limit=free.daily_limit,
+            album=free.max_album,
         )
 
     if ctx.plans.prices:
@@ -311,7 +323,8 @@ async def cb_buy(cb: CallbackQuery) -> None:
     if not price:
         await cb.answer("N/A", show_alert=True)
         return
-    title = f"Pro · {price.days} дн." if lang == "ru" else f"Pro · {price.days}d"
+    title = (t(lang, "sub.buy_btn_life", stars=price.stars) if price.lifetime
+             else f"Pro · {price.days} дн." if lang == "ru" else f"Pro · {price.days}d")
     desc = ("Подписка Pro на видео-кружки" if lang == "ru"
             else "Pro subscription for video notes")
     await send_subscription_invoice(ctx.bot, cb.from_user.id, price, title, desc)
@@ -343,19 +356,24 @@ async def on_successful_payment(message: Message) -> None:
     )
     if not fresh:
         logger.info("Повторный платёж %s — игнорируем", sp.telegram_payment_charge_id)
+        await message.answer(t(lang, "sub.already_paid"), parse_mode="HTML")
+        return
 
     expires = await ctx.subs.activate(
         user_id=user["user_id"], plan=data["plan"], days=data["days"],
         source="stars", charge_id=sp.telegram_payment_charge_id,
+        lifetime=data.get("lifetime", False),
     )
+    shown = t(lang, "sub.lifetime") if is_lifetime(expires) else expires[:10]
     await message.answer(
-        t(lang, "sub.paid_success", expires=expires[:10]),
+        t(lang, "sub.paid_success", expires=shown),
         reply_markup=menus.main_menu(lang, is_admin(user["user_id"])),
         parse_mode="HTML",
     )
     logger.info(
-        "Оплата Stars: user=%s plan=%s days=%s stars=%s",
+        "Оплата Stars: user=%s plan=%s days=%s stars=%s lifetime=%s",
         user["user_id"], data["plan"], data["days"], data["stars"],
+        data.get("lifetime", False),
     )
 
 
@@ -374,6 +392,169 @@ async def cb_check_membership(cb: CallbackQuery) -> None:
 
 # ===== Обработка видео =====
 
+def _extract_file(message: Message):
+    """(file_id, file_name, file_size) для видео-сообщения, иначе None."""
+    if message.video:
+        return (
+            message.video.file_id,
+            message.video.file_name or f"video_{message.video.file_unique_id}.mp4",
+            message.video.file_size or 0,
+        )
+    if message.video_note:
+        return (
+            message.video_note.file_id,
+            f"circle_{message.video_note.file_unique_id}.mp4",
+            message.video_note.file_size or 0,
+        )
+    if message.document and (message.document.mime_type or "").startswith("video/"):
+        return (
+            message.document.file_id,
+            message.document.file_name or f"video_{message.document.file_unique_id}",
+            message.document.file_size or 0,
+        )
+    return None
+
+
+def _step(lang: str, key: str, index: int, total: int) -> str:
+    """Текст статуса; для альбома добавляет «(i/n)»."""
+    text = t(lang, key)
+    return f"{text} ({index}/{total})" if total > 1 else text
+
+
+async def _convert_one(ctx, user, lang, plan, item, status, index, total) -> bool:
+    """Конвертирует один файл в кружок. True — успех."""
+    msg, file_id, file_name, file_size = item
+    task_id = ctx.tasks.add(
+        kind="convert", user_id=user["user_id"], chat_id=msg.chat.id,
+        filename=file_name, size=file_size,
+    )
+    started = time.monotonic()
+    input_path = output_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file_name).suffix) as tmp:
+            input_path = tmp.name
+        await ctx.bot.download(file_id, destination=input_path)
+
+        info = await VideoConverter.probe(input_path)
+        if info["duration"] > plan.max_duration_sec + 1:
+            await status.edit_text(t(
+                lang, "conv.too_long",
+                duration=int(info["duration"]), limit=plan.max_duration_sec,
+            ))
+            await ctx.usage.add(
+                user_id=user["user_id"], status="error", plan=plan.code,
+                file_size=file_size, duration=info["duration"],
+                fmt=Path(file_name).suffix.lower(), error="duration_limit",
+                processing_ms=int((time.monotonic() - started) * 1000),
+            )
+            return False
+
+        await status.edit_text(_step(lang, "conv.converting", index, total))
+        resolution = plan.normalize_resolution(user.get("quality"))
+        output_path, meta = await ctx.converter.convert_to_circle(
+            input_path, resolution=resolution, crf=plan.crf, preset=plan.preset
+        )
+
+        await status.edit_text(_step(lang, "conv.uploading", index, total))
+        with open(output_path, "rb") as f:
+            payload = BufferedInputFile(f.read(), filename="circle.mp4")
+        await msg.answer_video_note(
+            payload,
+            duration=max(1, int(meta["duration"])),
+            length=meta["width"],
+        )
+        await ctx.usage.add(
+            user_id=user["user_id"], status="ok", plan=plan.code,
+            file_size=file_size, duration=meta["duration"],
+            fmt=Path(file_name).suffix.lower(),
+            processing_ms=int((time.monotonic() - started) * 1000),
+        )
+        return True
+
+    except TelegramBadRequest as e:
+        logger.warning("TelegramBadRequest: %s", e)
+        await msg.answer(t(lang, "conv.duration_hint"))
+        await ctx.usage.add(
+            user_id=user["user_id"], status="error", plan=plan.code, file_size=file_size,
+            fmt=Path(file_name).suffix.lower(), error=str(e)[:200],
+            processing_ms=int((time.monotonic() - started) * 1000),
+        )
+        return False
+    except Exception as e:
+        logger.exception("Ошибка конвертации")
+        await msg.answer(t(lang, "conv.error"))
+        await ctx.usage.add(
+            user_id=user["user_id"], status="error", plan=plan.code, file_size=file_size,
+            fmt=Path(file_name).suffix.lower(), error=str(e)[:200],
+            processing_ms=int((time.monotonic() - started) * 1000),
+        )
+        return False
+    finally:
+        ctx.tasks.remove(task_id)
+        for path in (input_path, output_path):
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+
+
+async def _process_batch(messages: list, user, lang, plan) -> None:
+    """Обрабатывает одно видео или альбом: лимиты, валидация, конвертация."""
+    ctx = get_ctx()
+    pairs = [(m, f) for m in messages if (f := _extract_file(m))]
+    if not pairs:
+        return
+
+    # Лимит «видео в одном сообщении»
+    if not plan.album_unlimited() and len(pairs) > plan.max_album:
+        await messages[0].answer(
+            t(lang, "conv.album_limit", limit=plan.max_album, sent=len(pairs)),
+            reply_markup=menus.main_menu(lang, is_admin(user["user_id"])),
+            parse_mode="HTML",
+        )
+        return
+
+    # Предварительная проверка — все проблемы показываем одним сообщением
+    valid, problems = [], []
+    for msg, (file_id, file_name, file_size) in pairs:
+        if plan.max_size_bytes and file_size > plan.max_size_bytes:
+            problems.append(t(
+                lang, "conv.too_big",
+                size=round(file_size / 1024 / 1024, 1), limit=plan.max_size_mb,
+            ))
+        elif not VideoConverter.is_supported(file_name):
+            problems.append(t(lang, "conv.unsupported", ext=Path(file_name).suffix))
+        else:
+            valid.append((msg, file_id, file_name, file_size))
+
+    if problems:
+        await messages[0].answer("\n\n".join(problems), parse_mode="HTML")
+    if not valid:
+        return
+
+    status = await messages[0].answer(_step(lang, "conv.downloading", 1, len(valid)))
+    try:
+        for index, item in enumerate(valid, 1):
+            if not plan.is_unlimited():
+                used = await ctx.usage.count_user_today(user["user_id"])
+                if used >= plan.daily_limit:
+                    await status.edit_text(
+                        t(lang, "conv.daily_limit", limit=plan.daily_limit),
+                        reply_markup=menus.main_menu(lang, is_admin(user["user_id"])),
+                        parse_mode="HTML",
+                    )
+                    return
+            if index > 1:
+                await status.edit_text(_step(lang, "conv.downloading", index, len(valid)))
+            await _convert_one(ctx, user, lang, plan, item, status, index, len(valid))
+    finally:
+        try:
+            await status.delete()
+        except TelegramBadRequest:
+            pass
+
+
 @router.message(F.video | F.video_note | F.document, private_chat)
 async def handle_video(message: Message) -> None:
     ctx = get_ctx()
@@ -390,127 +571,17 @@ async def handle_video(message: Message) -> None:
 
     plan, _ = await user_plan(user)
 
-    # Дневной лимит
-    if not plan.is_unlimited():
-        used = await ctx.usage.count_user_today(user["user_id"])
-        if used >= plan.daily_limit:
-            await message.answer(
-                t(lang, "conv.daily_limit", limit=plan.daily_limit),
-                reply_markup=menus.main_menu(lang, is_admin(user["user_id"])),
-                parse_mode="HTML",
-            )
-            return
-
-    # Определяем файл
-    file_id = file_name = None
-    file_size = 0
-    if message.video:
-        file_id = message.video.file_id
-        file_name = message.video.file_name or f"video_{message.video.file_unique_id}.mp4"
-        file_size = message.video.file_size or 0
-    elif message.video_note:
-        file_id = message.video_note.file_id
-        file_name = f"circle_{message.video_note.file_unique_id}.mp4"
-        file_size = message.video_note.file_size or 0
-    elif message.document and (message.document.mime_type or "").startswith("video/"):
-        file_id = message.document.file_id
-        file_name = message.document.file_name or f"video_{message.document.file_unique_id}"
-        file_size = message.document.file_size or 0
-    else:
-        return
-
-    # Размер
-    if plan.max_size_bytes and file_size > plan.max_size_bytes:
-        await message.answer(
-            t(lang, "conv.too_big", size=round(file_size / 1024 / 1024, 1), limit=plan.max_size_mb),
-            parse_mode="HTML",
+    # Альбом: Telegram присылает каждое видео отдельным сообщением с общим
+    # media_group_id — копим их и обрабатываем пачкой.
+    if message.media_group_id:
+        ctx.albums.add(
+            message.media_group_id,
+            message,
+            lambda msgs: _process_batch(msgs, user, lang, plan),
         )
         return
 
-    # Формат
-    if not VideoConverter.is_supported(file_name):
-        await message.answer(
-            t(lang, "conv.unsupported", ext=Path(file_name).suffix), parse_mode="HTML"
-        )
-        return
-
-    status = await message.answer(t(lang, "conv.downloading"))
-
-    task_id = ctx.tasks.add(
-        kind="convert", user_id=user["user_id"], chat_id=message.chat.id,
-        filename=file_name, size=file_size,
-    )
-    started = time.monotonic()
-    input_path = output_path = None
-    try:
-        # Скачивание
-        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file_name).suffix) as tmp:
-            input_path = tmp.name
-        await ctx.bot.download(file_id, destination=input_path)
-
-        # Длительность
-        info = await VideoConverter.probe(input_path)
-        if info["duration"] > plan.max_duration_sec + 1:
-            await status.edit_text(
-                t(lang, "conv.too_long",
-                  duration=int(info["duration"]), limit=plan.max_duration_sec)
-            )
-            await ctx.usage.add(
-                user_id=user["user_id"], status="error", plan=plan.code,
-                file_size=file_size, duration=info["duration"],
-                fmt=Path(file_name).suffix.lower(), error="duration_limit",
-                processing_ms=int((time.monotonic() - started) * 1000),
-            )
-            return
-
-        await status.edit_text(t(lang, "conv.converting"))
-
-        resolution = plan.normalize_resolution(user.get("quality"))
-        output_path, meta = await ctx.converter.convert_to_circle(
-            input_path, resolution=resolution, crf=plan.crf, preset=plan.preset
-        )
-
-        await status.edit_text(t(lang, "conv.uploading"))
-        with open(output_path, "rb") as f:
-            payload = BufferedInputFile(f.read(), filename="circle.mp4")
-        await message.answer_video_note(
-            payload,
-            duration=max(1, int(meta["duration"])),
-            length=meta["width"],
-        )
-        await status.delete()
-
-        await ctx.usage.add(
-            user_id=user["user_id"], status="ok", plan=plan.code,
-            file_size=file_size, duration=meta["duration"],
-            fmt=Path(file_name).suffix.lower(),
-            processing_ms=int((time.monotonic() - started) * 1000),
-        )
-
-    except TelegramBadRequest as e:
-        logger.warning("TelegramBadRequest: %s", e)
-        await status.edit_text(t(lang, "conv.duration_hint"))
-        await ctx.usage.add(
-            user_id=user["user_id"], status="error", plan=plan.code, file_size=file_size,
-            fmt=Path(file_name).suffix.lower(), error=str(e)[:200],
-            processing_ms=int((time.monotonic() - started) * 1000),
-        )
-    except Exception as e:
-        logger.exception("Ошибка конвертации")
-        await status.edit_text(t(lang, "conv.error"))
-        await ctx.usage.add(
-            user_id=user["user_id"], status="error", plan=plan.code, file_size=file_size,
-            fmt=Path(file_name).suffix.lower(), error=str(e)[:200],
-            processing_ms=int((time.monotonic() - started) * 1000),
-        )
-    finally:
-        ctx.tasks.remove(task_id)
-        for p in (input_path, output_path):
-            if p and os.path.exists(p):
-                try:
-                    os.unlink(p)
-                except OSError:
-                    pass
+    await _process_batch([message], user, lang, plan)
 
 
 @router.message(private_chat)

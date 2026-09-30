@@ -8,6 +8,7 @@ from typing import Optional
 
 from aiogram import Bot
 
+from albums import AlbumBuffer
 from config_loader import Config
 from db import Database
 from plans import Plans
@@ -30,6 +31,7 @@ class AppContext:
     payments: PaymentRepo
     tasks: TaskRegistry
     jobs: JobRunner
+    albums: AlbumBuffer = field(default_factory=AlbumBuffer)
     bot: Optional[Bot] = None
     channel_checker: object = None      # ChannelChecker, задаётся в main
     converter: object = None            # VideoConverter, задаётся в main
