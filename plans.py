@@ -59,13 +59,11 @@ class Plans:
         free: Plan,
         pro: Plan,
         prices: list[PriceOption],
-        pro_chat_link: str = "",
     ):
         self._plans = {free.code: free, pro.code: pro}
         self.free = free
         self.pro = pro
         self.prices = prices
-        self.pro_chat_link = pro_chat_link
 
     def get(self, code: str) -> Plan:
         return self._plans.get(code, self.free)

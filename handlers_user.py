@@ -308,9 +308,51 @@ async def cb_subscription(cb: CallbackQuery) -> None:
         text += t(lang, "sub.no_prices")
 
     await cb.message.edit_text(
-        text, reply_markup=menus.subscription_menu(lang, ctx.plans.prices), parse_mode="HTML"
+        text,
+        reply_markup=menus.subscription_menu(lang, ctx.plans.prices, plan.code == "pro"),
+        parse_mode="HTML",
     )
     await cb.answer()
+
+
+@router.callback_query(F.data == "s:off")
+async def cb_sub_cancel(cb: CallbackQuery) -> None:
+    """Экран подтверждения досрочной отмены подписки."""
+    user = await ensure_user(cb)
+    lang = user["language"]
+    _, sub = await user_plan(user)
+    if not sub:
+        await cb.answer(t(lang, "sub.cancel_none"), show_alert=True)
+        return
+    expires = (t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"])
+               else sub["expires_at"][:10])
+    await cb.message.edit_text(
+        t(lang, "sub.cancel_confirm", expires=expires),
+        reply_markup=menus.sub_cancel_confirm(lang),
+        parse_mode="HTML",
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data == "s:off:yes")
+async def cb_sub_cancel_confirm(cb: CallbackQuery) -> None:
+    ctx = get_ctx()
+    user = await ensure_user(cb)
+    lang = user["language"]
+    cancelled = await ctx.subs.cancel(user["user_id"], reason="user")
+    if not cancelled:
+        await cb.answer(t(lang, "sub.cancel_none"), show_alert=True)
+        return
+    logger.info(
+        "Подписка отменена пользователем: user=%s, оставалось до %s",
+        user["user_id"], cancelled["expires_at"],
+    )
+    await cb.message.edit_text(
+        t(lang, "sub.cancel_done"),
+        reply_markup=menus.back_main(lang),
+        parse_mode="HTML",
+    )
+    await cb.answer(t(lang, "sub.cancel_done").split("\n")[0], show_alert=False)
 
 
 @router.callback_query(F.data.startswith("b:"))
@@ -502,6 +544,14 @@ async def _convert_one(ctx, user, lang, plan, item, status, index, total) -> boo
 async def _process_batch(messages: list, user, lang, plan) -> None:
     """Обрабатывает одно видео или альбом: лимиты, валидация, конвертация."""
     ctx = get_ctx()
+    # Сериализуем обработку видео одного пользователя: иначе два видео,
+    # отправленных подряд, могут одновременно пройти проверку лимита.
+    async with ctx.locks.hold(user["user_id"]):
+        await _process_batch_locked(messages, user, lang, plan)
+
+
+async def _process_batch_locked(messages: list, user, lang, plan) -> None:
+    ctx = get_ctx()
     pairs = [(m, f) for m in messages if (f := _extract_file(m))]
     if not pairs:
         return
@@ -534,11 +584,14 @@ async def _process_batch(messages: list, user, lang, plan) -> None:
         return
 
     status = await messages[0].answer(_step(lang, "conv.downloading", 1, len(valid)))
+    # Если мы оставляем сообщение пользователю (лимит исчерпан) — не удаляем его
+    keep_status = False
     try:
         for index, item in enumerate(valid, 1):
             if not plan.is_unlimited():
                 used = await ctx.usage.count_user_today(user["user_id"])
                 if used >= plan.daily_limit:
+                    keep_status = True
                     await status.edit_text(
                         t(lang, "conv.daily_limit", limit=plan.daily_limit),
                         reply_markup=menus.main_menu(lang, is_admin(user["user_id"])),
@@ -549,10 +602,11 @@ async def _process_batch(messages: list, user, lang, plan) -> None:
                 await status.edit_text(_step(lang, "conv.downloading", index, len(valid)))
             await _convert_one(ctx, user, lang, plan, item, status, index, len(valid))
     finally:
-        try:
-            await status.delete()
-        except TelegramBadRequest:
-            pass
+        if not keep_status:
+            try:
+                await status.delete()
+            except TelegramBadRequest:
+                pass
 
 
 @router.message(F.video | F.video_note | F.document, private_chat)

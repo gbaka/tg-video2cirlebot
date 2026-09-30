@@ -62,10 +62,7 @@ async def membership_ok(user_id: int) -> bool:
         return True
     checker = ctx.channel_checker
     if checker.channel_link != link:
-        checker.channel_link = link
-        checker._channel_id = None
-        checker._channel_username = None
-        checker._parse_channel_link()
+        checker.set_link(link)
     return await checker.is_member(user_id)
 
 

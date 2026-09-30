@@ -379,10 +379,7 @@ async def cmd_set_channel(message: Message, command: CommandObject) -> None:
 
     checker = ctx.channel_checker
     old = checker.channel_link
-    checker.channel_link = args
-    checker._channel_id = None
-    checker._channel_username = None
-    checker._parse_channel_link()
+    checker.set_link(args)
     try:
         chat = await ctx.bot.get_chat(checker.chat_id)
         await ctx.channel.set_link(args)
@@ -392,10 +389,7 @@ async def cmd_set_channel(message: Message, command: CommandObject) -> None:
             parse_mode="HTML",
         )
     except Exception as e:
-        checker.channel_link = old
-        checker._channel_id = None
-        checker._channel_username = None
-        checker._parse_channel_link()
+        checker.set_link(old)
         await message.answer(
             f"❌ Не удалось получить доступ к каналу/чату.\n<code>{e}</code>", parse_mode="HTML"
         )
@@ -430,10 +424,7 @@ async def cmd_clear_channel(message: Message) -> None:
     ctx = get_ctx()
     checker = ctx.channel_checker
     await ctx.channel.set_link("")
-    checker.channel_link = ""
-    checker._channel_id = None
-    checker._channel_username = None
-    checker._parse_channel_link()
+    checker.set_link("")
     await message.answer("✅ Проверка подписки отключена.")
 
 
@@ -607,7 +598,6 @@ async def cb_user_gift(cb: CallbackQuery) -> None:
 async def cb_user_revoke(cb: CallbackQuery) -> None:
     if not await _admin_guard(cb):
         return
-    ctx = get_ctx()
     admin = await ensure_user(cb)
     lang = admin["language"]
     user_id = _id_from_cb(cb.data)
@@ -615,12 +605,66 @@ async def cb_user_revoke(cb: CallbackQuery) -> None:
         await cb.answer()
         return
 
-    removed = await ctx.subs.deactivate(user_id)
+    cancelled = await _cancel_subscription(user_id)
+    if cancelled is None:
+        await cb.answer(t(lang, "revoke.none", user_id=user_id), show_alert=True)
+        return
+
     await cb.answer(
-        t(lang, "gift.revoked", user_id=user_id) if removed else "—", show_alert=True
+        t(lang, "revoke.done", user_id=user_id,
+          expires=_expires_label(lang, cancelled["expires_at"])),
+        show_alert=True,
     )
     logger.info("Админ %s снял подписку с %s", admin["user_id"], user_id)
+    await _notify_cancelled(user_id)
     await _refresh_card(cb, lang, user_id)
+
+
+# ===== Команда отмены подписки =====
+
+async def _cancel_subscription(user_id: int) -> dict | None:
+    """Отменяет активную подписку пользователя (админское действие)."""
+    return await get_ctx().subs.cancel(user_id, reason="admin")
+
+
+async def _notify_cancelled(user_id: int) -> None:
+    """Сообщает пользователю об отмене подписки; неудача не критична."""
+    ctx = get_ctx()
+    target = await ctx.users.get(user_id)
+    tlang = (target or {}).get("language") or "ru"
+    try:
+        await ctx.bot.send_message(user_id, t(tlang, "sub.cancel_admin"), parse_mode="HTML")
+    except Exception as e:
+        logger.info("Не удалось уведомить %s об отмене подписки: %s", user_id, e)
+
+
+@router.message(Command("revoke"), private_chat)
+async def cmd_revoke(message: Message, command: CommandObject) -> None:
+    if not await _admin_guard(message):
+        return
+    admin = await ensure_user(message)
+    lang = admin["language"]
+
+    args = (command.args or "").split()
+    if not args or not args[0].lstrip("-").isdigit():
+        key = "revoke.usage" if not (command.args or "").strip() else "revoke.bad_args"
+        await message.answer(t(lang, key), parse_mode="HTML")
+        return
+
+    user_id = int(args[0])
+    cancelled = await _cancel_subscription(user_id)
+    if cancelled is None:
+        await message.answer(t(lang, "revoke.none", user_id=user_id), parse_mode="HTML")
+        return
+
+    await message.answer(
+        t(lang, "revoke.done", user_id=user_id,
+          expires=_expires_label(lang, cancelled["expires_at"])),
+        parse_mode="HTML",
+    )
+    logger.info("Админ %s отменил подписку %s (была до %s)",
+                admin["user_id"], user_id, cancelled["expires_at"])
+    await _notify_cancelled(user_id)
 
 
 # ===== Экспорт пользователей в CSV =====

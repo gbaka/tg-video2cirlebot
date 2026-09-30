@@ -22,6 +22,13 @@ class ChannelChecker:
         self._channel_username: Optional[str] = None
         self._parse_channel_link()
 
+    def set_link(self, link: str) -> None:
+        """Меняет проверяемый канал и сбрасывает разобранный кэш."""
+        self.channel_link = link or ""
+        self._channel_id = None
+        self._channel_username = None
+        self._parse_channel_link()
+
     def _parse_channel_link(self) -> None:
         """Парсит ссылку на канал для получения ID или username."""
         if not self.channel_link:

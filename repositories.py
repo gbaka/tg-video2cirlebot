@@ -264,7 +264,35 @@ class SubscriptionRepo(_Base):
         finally:
             await conn.close()
 
+    async def cancel(self, user_id: int, reason: str = "user") -> dict | None:
+        """
+        Отменяет активную подписку пользователя досрочно.
+
+        Возвращает отменённую подписку (с оставшимся сроком) или None,
+        если активной подписки не было. reason: 'user' | 'admin' | 'expired'.
+        """
+        conn = await self._conn()
+        try:
+            cur = await conn.execute(
+                "SELECT * FROM subscriptions WHERE user_id = ? AND active = 1 "
+                "AND expires_at > ? ORDER BY expires_at DESC LIMIT 1",
+                (user_id, _now()),
+            )
+            row = await cur.fetchone()
+            if not row:
+                return None
+            await conn.execute(
+                "UPDATE subscriptions SET active = 0, cancelled_at = ?, cancel_reason = ? "
+                "WHERE id = ?",
+                (_now(), reason, row["id"]),
+            )
+            await conn.commit()
+            return dict(row)
+        finally:
+            await conn.close()
+
     async def deactivate(self, user_id: int) -> None:
+        """Внутреннее снятие флага активности без причины (служебное)."""
         conn = await self._conn()
         try:
             await conn.execute(
@@ -279,8 +307,10 @@ class SubscriptionRepo(_Base):
         conn = await self._conn()
         try:
             cur = await conn.execute(
-                "UPDATE subscriptions SET active = 0 WHERE active = 1 AND expires_at <= ?",
-                (_now(),),
+                "UPDATE subscriptions SET active = 0, cancelled_at = ?, "
+                "cancel_reason = COALESCE(cancel_reason, 'expired') "
+                "WHERE active = 1 AND expires_at <= ?",
+                (_now(), _now()),
             )
             await conn.commit()
             return cur.rowcount or 0
@@ -328,8 +358,16 @@ class UsageRepo(_Base):
         return await self._scalar("SELECT COUNT(*) FROM usage")
 
     async def count_user_today(self, user_id: int) -> int:
+        """
+        Успешные конвертации пользователя за текущие сутки (UTC).
+
+        `ts >= date('now')` вместо `date(ts) = date('now')`: дата хранится
+        в UTC (CURRENT_TIMESTAMP), поэтому сравнение по строке эквивалентно,
+        но остаётся 'sargable' — запрос использует индекс (user_id, ts).
+        """
         return await self._scalar(
-            "SELECT COUNT(*) FROM usage WHERE user_id = ? AND status = 'ok' AND date(ts) = date('now')",
+            "SELECT COUNT(*) FROM usage "
+            "WHERE user_id = ? AND status = 'ok' AND ts >= date('now')",
             (user_id,),
         )
 

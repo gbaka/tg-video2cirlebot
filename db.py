@@ -80,6 +80,13 @@ CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_ts ON payments(ts);
 """
 
+# Догоняющие миграции: (таблица, колонка, тип).
+# Нужны для баз, созданных более ранними версиями схемы.
+MIGRATIONS = [
+    ("subscriptions", "cancelled_at", "TIMESTAMP"),
+    ("subscriptions", "cancel_reason", "TEXT"),
+]
+
 
 class Database:
     """Обёртка над SQLite: единый путь, инициализация схемы, подключения."""
@@ -88,16 +95,26 @@ class Database:
         self.db_path = Path(db_path)
 
     async def init(self) -> None:
-        """Создаёт директорию и таблицы."""
+        """Создаёт директорию, таблицы и применяет догоняющие миграции."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self.db_path) as db:
             await db.executescript(SCHEMA)
+            await self._migrate(db)
             # Гарантируем строку настроек канала
             await db.execute(
                 "INSERT OR IGNORE INTO channel_settings (id, link) VALUES (1, '')"
             )
             await db.commit()
         logger.info("База данных готова: %s", self.db_path)
+
+    async def _migrate(self, db: aiosqlite.Connection) -> None:
+        """Добавляет недостающие колонки в существующие таблицы."""
+        for table, column, coltype in MIGRATIONS:
+            async with db.execute(f"PRAGMA table_info({table})") as cur:
+                existing = {row[1] for row in await cur.fetchall()}
+            if column not in existing:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+                logger.info("Миграция: %s.%s добавлена", table, column)
 
     def connect(self) -> aiosqlite.Connection:
         """Возвращает контекстный менеджер подключения (row_factory = Row)."""

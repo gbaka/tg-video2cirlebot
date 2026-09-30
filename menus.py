@@ -60,14 +60,26 @@ def admin_menu(lang: str) -> InlineKeyboardMarkup:
     ])
 
 
-def subscription_menu(lang: str, prices: list[PriceOption]) -> InlineKeyboardMarkup:
+def subscription_menu(
+    lang: str, prices: list[PriceOption], is_pro: bool = False
+) -> InlineKeyboardMarkup:
     rows = []
     for p in prices:
         label = (t(lang, "sub.buy_btn_life", stars=p.stars) if p.lifetime
                  else t(lang, "sub.buy_btn", days=p.days, stars=p.stars))
         rows.append([_btn(label, f"b:{p.code}")])
+    if is_pro:
+        rows.append([_btn(t(lang, "sub.cancel_btn"), "s:off")])
     rows.append([_btn(t(lang, "btn.back"), "m:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def sub_cancel_confirm(lang: str) -> InlineKeyboardMarkup:
+    """Подтверждение досрочной отмены подписки."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(t(lang, "sub.cancel_yes"), "s:off:yes")],
+        [_btn(t(lang, "sub.cancel_no"), "m:sub")],
+    ])
 
 
 def user_card_menu(lang: str, user_id: int, is_pro: bool) -> InlineKeyboardMarkup:

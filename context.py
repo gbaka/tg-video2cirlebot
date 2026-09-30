@@ -11,6 +11,7 @@ from aiogram import Bot
 from albums import AlbumBuffer
 from config_loader import Config
 from db import Database
+from locks import UserLocks
 from plans import Plans
 from repositories import (
     ChannelRepo, PaymentRepo, SettingsRepo, SubscriptionRepo, UsageRepo, UserRepo,
@@ -32,6 +33,7 @@ class AppContext:
     tasks: TaskRegistry
     jobs: JobRunner
     albums: AlbumBuffer = field(default_factory=AlbumBuffer)
+    locks: UserLocks = field(default_factory=UserLocks)
     bot: Optional[Bot] = None
     channel_checker: object = None      # ChannelChecker, задаётся в main
     converter: object = None            # VideoConverter, задаётся в main
