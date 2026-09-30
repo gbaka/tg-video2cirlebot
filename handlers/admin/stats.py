@@ -16,8 +16,8 @@ from handlers.admin.shared import (
     private_chat,
 )
 from i18n import t
-from repositories import _ago
 from tg import cb_message
+from timeutil import ago
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin.stats")
@@ -25,22 +25,22 @@ router = Router(name="admin.stats")
 async def _render_stats(lang: str) -> str:
     ctx = get_ctx()
     users_total = await ctx.users.count_all()
-    users_new_day = await ctx.users.count_since(_ago(days=1))
-    users_new_week = await ctx.users.count_since(_ago(days=7))
-    users_active_day = await ctx.users.count_active_since(_ago(days=1))
+    users_new_day = await ctx.users.count_since(ago(days=1))
+    users_new_week = await ctx.users.count_since(ago(days=7))
+    users_active_day = await ctx.users.count_active_since(ago(days=1))
 
     conv_total = await ctx.usage.count_all()
-    conv_day = await ctx.usage.count_since(_ago(days=1))
-    conv_week = await ctx.usage.count_since(_ago(days=7))
-    errors_week = await ctx.usage.count_since(_ago(days=7), status="error")
-    avg_ms = await ctx.usage.avg_processing_ms(_ago(days=7))
-    total_bytes = await ctx.usage.total_bytes(_ago(days=7))
+    conv_day = await ctx.usage.count_since(ago(days=1))
+    conv_week = await ctx.usage.count_since(ago(days=7))
+    errors_week = await ctx.usage.count_since(ago(days=7), status="error")
+    avg_ms = await ctx.usage.avg_processing_ms(ago(days=7))
+    total_bytes = await ctx.usage.total_bytes(ago(days=7))
 
     subs_active = await ctx.subs.count_active()
     pay_count = await ctx.payments.count()
     stars_total = await ctx.payments.total_stars()
 
-    top = await ctx.usage.top_formats(_ago(days=30), limit=5)
+    top = await ctx.usage.top_formats(ago(days=30), limit=5)
     top_str = "\n".join(f"• {fmt or '—'}: {cnt}" for fmt, cnt in top) or "—"
 
     daily = await ctx.usage.daily_counts(days=7)

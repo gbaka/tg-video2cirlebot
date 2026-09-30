@@ -8,10 +8,10 @@
 
 from aiogram import Router
 
-from handlers.user import media, menu, settings, subscription
+from handlers.user import billing, media, menu, settings
 
 router = Router(name="user")
 router.include_router(menu.router)
 router.include_router(settings.router)
-router.include_router(subscription.router)
+router.include_router(billing.router)
 router.include_router(media.router)

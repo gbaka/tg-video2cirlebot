@@ -33,6 +33,12 @@ docker compose logs -f
 
 `config.yaml` в `.gitignore` — реальные токены в репозиторий не попадают.
 
+Файл обязателен: без него бот не стартует и пишет, что именно не найдено
+(раньше молча брались значения по умолчанию, и в логе появлялось
+«bot.token не задан» — диагностика уводила не туда). Пути к конфигу и локалям
+считаются от расположения `main.py`, поэтому запуск из любого каталога даёт
+одинаковый результат.
+
 ## Конфигурация
 
 **Единственный источник статических настроек — `config.yaml`** (переменные окружения не используются).
@@ -162,7 +168,10 @@ logging:
 ├── config.yaml          # Все статические настройки (в .gitignore)
 ├── config.example.yaml  # Пример конфига
 ├── db.py                # Схема SQLite и подключение
-├── repositories.py      # Репозитории: users, subscriptions, usage, settings, channel, payments
+├── repositories/        # Доступ к данным (пакет по таблицам)
+│   ├── base.py          #   Base: соединение, скалярные запросы; бессрочная подписка
+│   └── users · subscriptions · usage · settings · channel · payments
+├── timeutil.py          # Метки времени UTC: now / ago / after
 ├── plans.py             # Тарифы: лимиты, разрешения, определение прав
 ├── access.py            # Проверки: роль, тариф, членство, обслуживание
 ├── i18n.py              # Загрузка локалей и функция t()
@@ -171,7 +180,7 @@ logging:
 ├── menus.py             # Inline-клавиатуры
 ├── handlers/            # Хендлеры: только ввод/вывод
 │   ├── admin/           #   shared, menu, stats, users, settings, channel, cards, export
-│   └── user/            #   shared, menu, settings, subscription, media
+│   └── user/            #   shared, menu, settings, billing, media
 ├── services/            # Бизнес-логика без привязки к интерфейсу
 │   ├── conversion.py    #   конвертация: лимиты, валидация, пайплайн
 │   ├── subscriptions.py #   подарок/отмена подписки, уведомления
@@ -183,7 +192,7 @@ logging:
 ├── video_converter.py   # Конвертация через ffmpeg
 ├── channel_checker.py   # Проверка участия в канале/чате
 ├── tg.py                # Хелперы aiogram (сужение типов callback-а)
-├── tests/               # pytest: 227 тестов
+├── tests/               # pytest: 235 тестов
 ├── pyproject.toml       # Настройки ruff / mypy / pytest
 ├── requirements.txt
 ├── requirements-dev.txt # pytest, ruff, mypy (в образ не попадают)
@@ -199,7 +208,9 @@ logging:
   `context`, репозиториев и i18n, но не от роутеров и меню. Например, выдачу
   подписки можно вызвать из скрипта обслуживания:
   `await gift_subscription(ctx, user_id, 30, False)`.
-- **`repositories.py` / `db.py`** — доступ к данным.
+- **`repositories/` / `db.py`** — доступ к данным. Пакет разбит по таблицам,
+  `repositories/__init__.py` реэкспортирует всё, поэтому `from repositories import
+  UserRepo` работает как раньше.
 - **`plans.py` / `access.py`** — правила тарифов и прав.
 
 ## Разработка

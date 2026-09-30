@@ -62,11 +62,22 @@ class Config:
     default_language: str = "ru"
 
     @classmethod
-    def load(cls, config_path: str | None = None) -> "Config":
+    def load(cls, config_path: str | Path | None = None) -> "Config":
+        """
+        Загружает конфиг.
+
+        Без аргумента — значения по умолчанию (нужно тестам). С путём файл
+        обязан существовать: молчаливая подстановка умолчаний вместо
+        отсутствующего конфига даёт ложную диагностику — «bot.token не задан»
+        вместо «config.yaml не найден».
+        """
         data = _deep_copy(DEFAULTS)
 
-        if config_path and Path(config_path).exists():
-            with open(config_path, encoding="utf-8") as f:
+        if config_path is not None:
+            path = Path(config_path)
+            if not path.is_file():
+                raise FileNotFoundError(f"Не найден файл конфигурации: {path}")
+            with open(path, encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f) or {}
                 _merge(data, yaml_data)
 

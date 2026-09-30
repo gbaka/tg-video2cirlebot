@@ -17,15 +17,20 @@ _locales: dict[str, dict] = {}
 
 
 def load_locales(locales_dir: str | Path) -> None:
-    """Загружает все locales/*.json в память."""
+    """
+    Загружает все locales/*.json в память.
+
+    Файл для каждого поддерживаемого языка обязателен: без него t() вернёт
+    пользователю сам ключ («menu.title»), а не текст, — такую деградацию
+    лучше поймать на старте.
+    """
     path = Path(locales_dir)
     for lang in SUPPORTED:
         file = path / f"{lang}.json"
-        if file.exists():
-            _locales[lang] = json.loads(file.read_text(encoding="utf-8"))
-            logger.info("Локаль загружена: %s (%d ключей)", lang, len(_locales[lang]))
-        else:
-            logger.warning("Локаль не найдена: %s", file)
+        if not file.is_file():
+            raise FileNotFoundError(f"Не найден файл локали: {file}")
+        _locales[lang] = json.loads(file.read_text(encoding="utf-8"))
+        logger.info("Локаль загружена: %s (%d ключей)", lang, len(_locales[lang]))
 
 
 def t(lang: str, key: str, /, **kwargs) -> str:

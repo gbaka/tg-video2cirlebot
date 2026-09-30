@@ -23,8 +23,20 @@ def test_loads_token_and_admins(tmp_path: Path) -> None:
     assert config.validate() == []
 
 
-def test_missing_file_falls_back_to_defaults(tmp_path: Path) -> None:
-    config = Config.load(str(tmp_path / "absent.yaml"))
+def test_missing_file_raises(tmp_path: Path) -> None:
+    """
+    Отсутствующий конфиг — громкая ошибка.
+
+    Тихая подстановка умолчаний давала ложную диагностику: «bot.token не
+    задан» вместо «config.yaml не найден».
+    """
+    with pytest.raises(FileNotFoundError, match="файл конфигурации"):
+        Config.load(str(tmp_path / "absent.yaml"))
+
+
+def test_defaults_without_path() -> None:
+    """Без пути — умолчания (это то, что нужно тестам и встроенному примеру)."""
+    config = Config.load()
     assert config.bot.admin_ids == []
     assert config.default_language == "ru"
     assert config.plans.free.daily_limit == 5

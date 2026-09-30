@@ -134,7 +134,7 @@ def test_routers_are_nested_but_handlers_survive() -> None:
                 "admin.export",
             ],
         ),
-        (user_router, ["user.menu", "user.settings", "user.subscription", "user.media"]),
+        (user_router, ["user.menu", "user.settings", "user.billing", "user.media"]),
     ):
         assert [r.name for r in top.sub_routers] == expected
         for sub in top.sub_routers:

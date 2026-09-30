@@ -26,7 +26,7 @@ from repositories import is_lifetime
 from tg import cb_data, cb_message
 
 logger = logging.getLogger(__name__)
-router = Router(name="user.subscription")
+router = Router(name="user.billing")
 
 @router.callback_query(F.data == "m:sub")
 async def cb_subscription(cb: CallbackQuery) -> None:

@@ -20,8 +20,8 @@ from handlers.admin.shared import (
     private_chat,
 )
 from i18n import t
-from repositories import _ago
 from tg import cb_data, cb_message
+from timeutil import ago
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin.users")
@@ -35,7 +35,7 @@ async def _render_users(
     text = t(lang, "users.title") + t(
         lang, "users.body",
         total=total,
-        new_day=await ctx.users.count_since(_ago(days=1)),
+        new_day=await ctx.users.count_since(ago(days=1)),
     )
     if query:
         text += t(lang, "users.for_query", query=escape(query))

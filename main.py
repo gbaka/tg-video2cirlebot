@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import tempfile
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -36,6 +37,12 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# Пути считаем от расположения файла, а не от текущего каталога: иначе запуск
+# бота из другого каталога молча не находил бы конфиг и локали.
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = BASE_DIR / "config.yaml"
+LOCALES_DIR = BASE_DIR / "locales"
 
 
 # ===== Фоновые задачи =====
@@ -89,15 +96,21 @@ def build_dispatcher() -> Dispatcher:
 
 
 async def main() -> None:
-    config = Config.load("config.yaml")
+    try:
+        config = Config.load(CONFIG_PATH)
+    except FileNotFoundError as e:
+        logger.error("%s", e)
+        logger.error("Скопируйте config.example.yaml в config.yaml и заполните его")
+        return
+
     errors = config.validate()
     if errors:
-        for e in errors:
-            logger.error(e)
+        for problem in errors:
+            logger.error(problem)
         return
 
     logging.getLogger().setLevel(config.logging.level)
-    load_locales("locales")
+    load_locales(LOCALES_DIR)
 
     db = Database("/app/data/bot_data.db")
     await db.init()
