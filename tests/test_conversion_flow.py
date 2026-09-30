@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 import access
-import handlers_user
+from handlers.user import media as handlers_user
 from plans import Plan
 from tests.fakes import FakeContext, FakeMessage
 

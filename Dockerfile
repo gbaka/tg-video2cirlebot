@@ -45,6 +45,7 @@ WORKDIR /app
 
 # Копируем код приложения
 COPY --chown=appuser:appuser *.py *.yaml ./
+COPY --chown=appuser:appuser handlers/ ./handlers/
 COPY --chown=appuser:appuser locales/ ./locales/
 
 # Создаем директорию для временных файлов

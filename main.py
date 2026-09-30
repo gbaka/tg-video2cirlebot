@@ -18,8 +18,8 @@ from channel_checker import ChannelChecker
 from config_loader import Config
 from context import AppContext, get_ctx
 from db import Database
-from handlers_admin import router as admin_router
-from handlers_user import router as user_router
+from handlers.admin import router as admin_router
+from handlers.user import router as user_router
 from i18n import load_locales
 from repositories import (
     ChannelRepo,

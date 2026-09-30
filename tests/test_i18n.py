@@ -48,7 +48,8 @@ def test_every_template_renders(lang: str) -> None:
 
 
 def _source_text() -> str:
-    return "\n".join(p.read_text(encoding="utf-8") for p in ROOT.glob("*.py"))
+    files = [p for p in ROOT.rglob("*.py") if "tests" not in p.parts]
+    return "\n".join(p.read_text(encoding="utf-8") for p in files)
 
 
 def test_keys_used_in_code_exist() -> None:
