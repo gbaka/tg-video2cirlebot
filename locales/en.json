@@ -78,6 +78,13 @@
   "users.title": "👥 <b>Users</b>",
   "users.body": "\n\nTotal: {total}\nNew today: {new_day}",
   "users.item": "\n\n🆔 <code>{user_id}</code> — {name}\n   {plan}, since {created}",
+  "users.for_query": "\n🔍 Query: <code>{query}</code>",
+  "users.nothing": "\n\nNothing found.",
+  "users.showing": "\n\n<i>Showing {start}–{end} of {total}</i>",
+  "users.page": "Page {page}/{pages}",
+  "users.search_btn": "🔍 Search",
+  "users.search_prompt": "🔍 Enter user ID or @username (partial name allowed):",
+  "users.clear": "✖️ Clear search",
 
   "conv.downloading": "⏳ Downloading video…",
   "conv.converting": "🔄 Converting to a circle…",

@@ -78,6 +78,13 @@
   "users.title": "👥 <b>Пользователи</b>",
   "users.body": "\n\nВсего: {total}\nНовых за сутки: {new_day}",
   "users.item": "\n\n🆔 <code>{user_id}</code> — {name}\n   {plan}, с {created}",
+  "users.for_query": "\n🔍 По запросу: <code>{query}</code>",
+  "users.nothing": "\n\nНичего не найдено.",
+  "users.showing": "\n\n<i>Показано {start}–{end} из {total}</i>",
+  "users.page": "Стр. {page}/{pages}",
+  "users.search_btn": "🔍 Поиск",
+  "users.search_prompt": "🔍 Введите ID пользователя или @username (можно часть имени):",
+  "users.clear": "✖️ Сбросить поиск",
 
   "conv.downloading": "⏳ Скачиваю видео…",
   "conv.converting": "🔄 Конвертирую в кружок…",

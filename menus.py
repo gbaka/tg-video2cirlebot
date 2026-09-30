@@ -114,6 +114,35 @@ def channel_menu(lang: str) -> InlineKeyboardMarkup:
     ])
 
 
+def users_page_menu(
+    lang: str, offset: int, page_size: int, total: int, query: str = ""
+) -> InlineKeyboardMarkup:
+    """Навигация по списку пользователей: пагинация + поиск."""
+    pages = max(1, (total + page_size - 1) // page_size)
+    page = offset // page_size + 1
+
+    nav: list[InlineKeyboardButton] = []
+    if offset > 0:
+        nav.append(_btn("⬅️", f"u:p:{max(0, offset - page_size)}"))
+    nav.append(_btn(t(lang, "users.page", page=page, pages=pages), "u:noop"))
+    if offset + page_size < total:
+        nav.append(_btn("➡️", f"u:p:{offset + page_size}"))
+
+    rows = [nav]
+    if query:
+        rows.append([_btn(t(lang, "users.clear"), "u:clr")])
+    else:
+        rows.append([_btn(t(lang, "users.search_btn"), "u:srch")])
+    rows.append([_btn(t(lang, "btn.back"), "m:admin")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def users_search_cancel(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(t(lang, "btn.back"), "a:users")],
+    ])
+
+
 def membership_kb(lang: str, url: str) -> InlineKeyboardMarkup:
     rows = []
     if url:

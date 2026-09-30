@@ -108,6 +108,50 @@ class UserRepo(_Base):
         finally:
             await conn.close()
 
+    @staticmethod
+    def _build_filter(query: str) -> tuple[str, list]:
+        """Фильтр для поиска: точный ID или LIKE по username/имени."""
+        q = (query or "").strip().lstrip("@")
+        if not q:
+            return "", []
+        if q.isdigit():
+            return "WHERE u.user_id = ?", [int(q)]
+        like = f"%{q}%"
+        return "WHERE u.username LIKE ? OR u.first_name LIKE ?", [like, like]
+
+    async def search_page(
+        self, offset: int, limit: int, query: str = ""
+    ) -> tuple[list[dict], int]:
+        """
+        Страница пользователей с активным тарифом, без N+1.
+
+        Returns:
+            (строки с полем active_plan, общее количество по фильтру)
+        """
+        where, params = self._build_filter(query)
+
+        conn = await self._conn()
+        try:
+            cur = await conn.execute(f"SELECT COUNT(*) FROM users u {where}", tuple(params))
+            row = await cur.fetchone()
+            total = int(row[0]) if row else 0
+
+            # Подзапрос отдаёт активный тариф одним запросом (вместо запроса на каждого)
+            sql = f"""
+                SELECT u.*, (
+                    SELECT s.plan FROM subscriptions s
+                    WHERE s.user_id = u.user_id AND s.active = 1 AND s.expires_at > ?
+                    ORDER BY s.expires_at DESC LIMIT 1
+                ) AS active_plan
+                FROM users u {where}
+                ORDER BY u.created_at DESC
+                LIMIT ? OFFSET ?
+            """
+            cur = await conn.execute(sql, tuple([_now()] + params + [limit, offset]))
+            return [dict(r) for r in await cur.fetchall()], total
+        finally:
+            await conn.close()
+
     async def _scalar(self, sql: str, params: tuple = ()) -> int:
         conn = await self._conn()
         try:
