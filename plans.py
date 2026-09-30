@@ -1,0 +1,88 @@
+"""
+Тарифные планы: лимиты, определение прав пользователя.
+"""
+
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class Plan:
+    """Тариф: набор лимитов и параметров кодирования."""
+    code: str
+    max_size_mb: int
+    max_duration_sec: int
+    resolutions: list[int]
+    default_resolution: int
+    crf: int
+    preset: str
+    daily_limit: int = 0          # 0 = без ограничения
+
+    @property
+    def max_size_bytes(self) -> int:
+        return self.max_size_mb * 1024 * 1024 if self.max_size_mb > 0 else 0
+
+    def is_unlimited(self) -> bool:
+        return self.daily_limit <= 0
+
+    def normalize_resolution(self, requested: Optional[int]) -> int:
+        """Возвращает допустимое разрешение (ближайшее из доступных)."""
+        if not requested:
+            return self.default_resolution
+        if requested in self.resolutions:
+            return requested
+        # Ближайшее меньшее или максимальное доступное
+        lower = [r for r in self.resolutions if r <= requested]
+        return max(lower) if lower else self.default_resolution
+
+
+@dataclass
+class PriceOption:
+    """Вариант покупки подписки за Telegram Stars."""
+    code: str            # 'pro_30d'
+    plan: str            # 'pro'
+    days: int
+    stars: int
+    label: str = ""      # отображаемое название (i18n или plain)
+
+
+class Plans:
+    """Реестр тарифов и цен."""
+
+    def __init__(
+        self,
+        free: Plan,
+        pro: Plan,
+        prices: list[PriceOption],
+        pro_chat_link: str = "",
+    ):
+        self._plans = {free.code: free, pro.code: pro}
+        self.free = free
+        self.pro = pro
+        self.prices = prices
+        self.pro_chat_link = pro_chat_link
+
+    def get(self, code: str) -> Plan:
+        return self._plans.get(code, self.free)
+
+    def price(self, code: str) -> Optional[PriceOption]:
+        for p in self.prices:
+            if p.code == code:
+                return p
+        return None
+
+    def resolve(
+        self,
+        is_admin: bool,
+        has_active_subscription: bool,
+        subscription_plan: Optional[str] = None,
+    ) -> Plan:
+        """
+        Определяет действующий тариф.
+        Админы получают Pro-лимиты по умолчанию.
+        """
+        if is_admin:
+            return self.pro
+        if has_active_subscription and subscription_plan:
+            return self.get(subscription_plan)
+        return self.free

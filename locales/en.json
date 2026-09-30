@@ -1,0 +1,100 @@
+{
+  "btn.back": "⬅️ Back",
+  "btn.close": "✖️ Close",
+  "btn.howto": "🎬 How to use",
+  "btn.subscription": "💳 Subscription",
+  "btn.profile": "📊 My profile",
+  "btn.settings": "⚙️ Settings",
+  "btn.help": "ℹ️ Help",
+  "btn.admin": "👑 Admin menu",
+  "btn.language": "🌐 Language",
+  "btn.quality": "🎥 Quality",
+  "btn.stats": "📈 Statistics",
+  "btn.users": "👥 Users",
+  "btn.tasks": "📋 Tasks",
+  "btn.bot_settings": "⚙️ Bot settings",
+  "btn.channel": "📢 Channel",
+  "btn.on": "🟢 On",
+  "btn.off": "🔴 Off",
+
+  "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nSend a video — I'll turn it into a Telegram video note (circle).\n\nChoose a section:",
+  "menu.main": "🏠 <b>Main menu</b>",
+  "menu.admin_title": "👑 <b>Admin menu</b>\n\nChoose a section:",
+
+  "info.text": "🎬 <b>How to use</b>\n\n1. Send a video (file, video note or video document).\n2. Wait for the conversion.\n3. Get your circle.\n\n<b>📋 Formats:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob and 30+ more (via ffmpeg).\n\n<b>⚙️ Telegram limits:</b> the note is square, up to ~60 seconds, H.264/AAC codecs.",
+
+  "help.text": "ℹ️ <b>Help</b>\n\n<b>What the bot does:</b> converts videos into Telegram video notes.\n\n<b>Commands:</b>\n/start — main menu\n/help — this help\n/setlanguage — change language\n\n<b>Plans:</b>\n• Free — basic quality, daily limit\n• Pro — higher quality, bigger limits\n\nOpen “💳 Subscription” for details.\n\n<b>🔒 Privacy:</b> the bot works in private chats only.",
+
+  "sub.title": "💳 <b>Subscription</b>",
+  "sub.current_free": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: {limit} conversions per day",
+  "sub.current_free_unlimited": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: unlimited",
+  "sub.current_pro": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Valid until: <b>{expires}</b>",
+  "sub.current_pro_unlimited": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Valid until: <b>{expires}</b>",
+  "sub.buy_title": "\n\n<b>⭐ Get / extend Pro:</b>",
+  "sub.buy_btn": "Pro · {days}d · {stars} ⭐",
+  "sub.no_prices": "\n\nPurchases are temporarily unavailable.",
+  "sub.paid_success": "✅ <b>Payment received!</b>\n\nPro subscription is active until <b>{expires}</b>.\nThank you! Higher quality is now available.",
+  "sub.payment_error": "❌ Failed to process the payment. If stars were charged, contact the admin.",
+  "sub.pro_log": "Payment: {user} bought Pro for {days}d for {stars} ⭐",
+
+  "profile.title": "📊 <b>Your profile</b>",
+  "profile.body": "\n\n🆔 ID: <code>{user_id}</code>\n💼 Plan: {plan}\n🎥 Quality: {quality}\n📅 Conversions today: {today}{today_limit}\n🧮 Total conversions: {total}\n📆 Member since: {created}",
+  "profile.quality_fixed": "{res}×{res}",
+  "profile.quality_selectable": "{res}×{res} (selectable)",
+  "profile.today_limit": " / {limit}",
+
+  "settings.title": "⚙️ <b>Settings</b>\n\n🌐 Language: {lang}\n🎥 Quality: {quality}",
+  "settings.quality_locked": "\n\n🎥 Quality is available on the ⭐ Pro plan.",
+
+  "lang.title": "🌐 <b>Choose language</b>\n\n🇷🇺 Русский / 🇬🇧 English",
+  "lang.changed": "✅ Language changed: {lang}",
+
+  "quality.title": "🎥 <b>Video note quality</b>\n\nChoose a resolution (available on ⭐ Pro):",
+  "quality.current": "✅ Current quality: {res}×{res}",
+  "quality.changed": "✅ Quality changed: {res}×{res}",
+
+  "admin.title": "👑 <b>Admin menu</b>\n\nChoose a section:",
+  "admin.denied": "⛔ Admin rights required.",
+
+  "stats.title": "📈 <b>Statistics</b>",
+  "stats.body": "\n\n<b>👥 Users</b>\n• Total: {users_total}\n• New today: {users_new_day}\n• New this week: {users_new_week}\n• Active today: {users_active_day}\n\n<b>🎬 Conversions</b>\n• Total: {conv_total}\n• Today: {conv_day}\n• This week: {conv_week}\n• Errors this week: {errors_week}\n• Avg time: {avg_time} s\n• Processed: {total_mb} MB\n\n<b>⭐ Subscriptions</b>\n• Active Pro: {subs_active}\n• Payments: {pay_count}\n• Stars earned: {stars_total}\n\n<b>📁 Top formats:</b>\n{top_formats}\n\n<b>📅 By day:</b>\n{daily}",
+
+  "tasks.title": "📋 <b>Bot tasks</b>",
+  "tasks.active_title": "\n\n<b>⚙️ Active conversions:</b> {n}",
+  "tasks.active_item": "\n• <code>{user}</code> — {name} ({size} MB), {elapsed}s",
+  "tasks.jobs_title": "\n\n<b>🔄 Background jobs:</b>",
+  "tasks.job_item": "\n• {name}: {runs} runs, last at {last}",
+  "tasks.job_never": "not run yet",
+  "tasks.none": "\n\nNo active conversions right now.",
+
+  "botset.title": "⚙️ <b>Bot settings</b>",
+  "botset.body": "\n\n🔧 Maintenance mode: {maintenance}\n🔐 Membership check: {membership}\n\n<i>Maintenance mode blocks conversion for everyone except admins. Membership check requires joining the channel.</i>",
+
+  "channel.title": "📢 <b>Channel for membership check</b>",
+  "channel.current": "\n\nCurrent: <code>{link}</code>",
+  "channel.not_set": "\n\nNo channel set — membership check is disabled.",
+  "channel.usage": "\n\n<b>Change channel:</b>\n<code>/setchannel &lt;link&gt;</code>\n\n<b>Formats:</b>\n• <code>@username</code>\n• <code>-1001234567890</code>\n• <code>https://t.me/username</code>\n• <code>https://t.me/c/1234567890</code>\n\n<b>Disable:</b> /clearchannel",
+
+  "users.title": "👥 <b>Users</b>",
+  "users.body": "\n\nTotal: {total}\nNew today: {new_day}",
+  "users.item": "\n\n🆔 <code>{user_id}</code> — {name}\n   {plan}, since {created}",
+
+  "conv.downloading": "⏳ Downloading video…",
+  "conv.converting": "🔄 Converting to a circle…",
+  "conv.uploading": "📤 Uploading the circle…",
+  "conv.too_big": "❌ File is too large: {size} MB.\nYour plan limit: {limit} MB.",
+  "conv.too_long": "❌ Video is too long: {duration}s.\nYour plan limit: {limit}s.",
+  "conv.unsupported": "❌ Unsupported format: {ext}",
+  "conv.daily_limit": "❌ Daily conversion limit reached ({limit}).\n\nGet ⭐ Pro for unlimited, or try again tomorrow.",
+  "conv.error": "❌ Conversion failed. Try another video.",
+  "conv.duration_hint": "❌ The video doesn't fit a circle (max ~60 seconds).",
+  "conv.maintenance": "🔧 <b>Maintenance</b>\n\nSorry, conversion is temporarily unavailable. Please try later.",
+  "conv.send_video": "📹 Send a video file, video note or video document — I'll make a circle.",
+
+  "member.denied": "🚫 <b>Access restricted</b>\n\nJoin our channel/chat to use the bot.",
+  "member.join_btn": "Join",
+  "member.check": "✅ Check membership",
+
+  "common.admin_only": "⛔ Admin rights required.",
+  "common.unknown": "Unknown command."
+}

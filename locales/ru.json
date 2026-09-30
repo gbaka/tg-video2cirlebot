@@ -1,0 +1,100 @@
+{
+  "btn.back": "⬅️ Назад",
+  "btn.close": "✖️ Закрыть",
+  "btn.howto": "🎬 Как пользоваться",
+  "btn.subscription": "💳 Подписка",
+  "btn.profile": "📊 Мой профиль",
+  "btn.settings": "⚙️ Настройки",
+  "btn.help": "ℹ️ Помощь",
+  "btn.admin": "👑 Админ-меню",
+  "btn.language": "🌐 Язык",
+  "btn.quality": "🎥 Качество",
+  "btn.stats": "📈 Статистика",
+  "btn.users": "👥 Пользователи",
+  "btn.tasks": "📋 Задачи",
+  "btn.bot_settings": "⚙️ Настройки бота",
+  "btn.channel": "📢 Канал",
+  "btn.on": "🟢 Вкл",
+  "btn.off": "🔴 Выкл",
+
+  "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nОтправьте видео — я превращу его в кружок (видео-сообщение) Telegram.\n\nВыберите раздел:",
+  "menu.main": "🏠 <b>Главное меню</b>",
+  "menu.admin_title": "👑 <b>Админ-меню</b>\n\nВыберите раздел:",
+
+  "info.text": "🎬 <b>Как пользоваться</b>\n\n1. Отправьте видео (файл, видео-сообщение или документ с видео).\n2. Дождитесь конвертации.\n3. Получите готовый кружок.\n\n<b>📋 Форматы:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob и 30+ других (через ffmpeg).\n\n<b>⚙️ Ограничения Telegram:</b> кружок квадратный, до ~60 секунд, кодеки H.264/AAC.",
+
+  "help.text": "ℹ️ <b>Помощь</b>\n\n<b>Что делает бот:</b> конвертирует видео в «кружки» Telegram.\n\n<b>Команды:</b>\n/start — главное меню\n/help — эта справка\n/setlanguage — сменить язык\n\n<b>Тарифы:</b>\n• Free — базовое качество, лимит в день\n• Pro — выше качество, больше лимиты\n\nОткройте «💳 Подписка», чтобы узнать детали.\n\n<b>🔒 Приватность:</b> бот работает только в личных сообщениях.",
+
+  "sub.title": "💳 <b>Подписка</b>",
+  "sub.current_free": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: {limit} конвертаций в день",
+  "sub.current_free_unlimited": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: без ограничений",
+  "sub.current_pro": "\n\n<b>Ваш тариф:</b> ⭐ Pro\n• Качество: до {maxres}×{maxres} (на выбор)\n• Макс. файл: {size} MB\n• Лимит: без ограничений\n• Действует до: <b>{expires}</b>",
+  "sub.current_pro_unlimited": "\n\n<b>Ваш тариф:</b> ⭐ Pro\n• Качество: до {maxres}×{maxres} (на выбор)\n• Макс. файл: {size} MB\n• Лимит: без ограничений\n• Действует до: <b>{expires}</b>",
+  "sub.buy_title": "\n\n<b>⭐ Оформить/продлить Pro:</b>",
+  "sub.buy_btn": "Pro · {days} дн. · {stars} ⭐",
+  "sub.no_prices": "\n\nПокупка временно недоступна.",
+  "sub.paid_success": "✅ <b>Оплата получена!</b>\n\nПодписка Pro активирована до <b>{expires}</b>.\nСпасибо! Теперь вам доступно повышенное качество.",
+  "sub.payment_error": "❌ Не удалось обработать платёж. Если звёзды списались — напишите администратору.",
+  "sub.pro_log": "Платёж: {user} приобрёл Pro на {days} дн. за {stars} ⭐",
+
+  "profile.title": "📊 <b>Ваш профиль</b>",
+  "profile.body": "\n\n🆔 ID: <code>{user_id}</code>\n💼 Тариф: {plan}\n🎥 Качество: {quality}\n📅 Сегодня конвертаций: {today}{today_limit}\n🧮 Всего конвертаций: {total}\n📆 С нами с: {created}",
+  "profile.quality_fixed": "{res}×{res}",
+  "profile.quality_selectable": "{res}×{res} (на выбор)",
+  "profile.today_limit": " / {limit}",
+
+  "settings.title": "⚙️ <b>Настройки</b>\n\n🌐 Язык: {lang}\n🎥 Качество: {quality}",
+  "settings.quality_locked": "\n\n🎥 Качество доступно на тарифе ⭐ Pro.",
+
+  "lang.title": "🌐 <b>Выбор языка</b>\n\n🇷🇺 Русский / 🇬🇧 English",
+  "lang.changed": "✅ Язык изменён: {lang}",
+
+  "quality.title": "🎥 <b>Качество кружка</b>\n\nВыберите разрешение (доступно на ⭐ Pro):",
+  "quality.current": "✅ Текущее качество: {res}×{res}",
+  "quality.changed": "✅ Качество изменено: {res}×{res}",
+
+  "admin.title": "👑 <b>Админ-меню</b>\n\nВыберите раздел:",
+  "admin.denied": "⛔ Нет прав администратора.",
+
+  "stats.title": "📈 <b>Статистика</b>",
+  "stats.body": "\n\n<b>👥 Пользователи</b>\n• Всего: {users_total}\n• Новых за сутки: {users_new_day}\n• Новых за неделю: {users_new_week}\n• Активных за сутки: {users_active_day}\n\n<b>🎬 Конвертации</b>\n• Всего: {conv_total}\n• За сутки: {conv_day}\n• За неделю: {conv_week}\n• Ошибок за неделю: {errors_week}\n• Среднее время: {avg_time} с\n• Обработано: {total_mb} MB\n\n<b>⭐ Подписки</b>\n• Активных Pro: {subs_active}\n• Платежей: {pay_count}\n• Звёзд получено: {stars_total}\n\n<b>📁 Топ форматов:</b>\n{top_formats}\n\n<b>📅 По дням:</b>\n{daily}",
+
+  "tasks.title": "📋 <b>Задачи бота</b>",
+  "tasks.active_title": "\n\n<b>⚙️ Активные конвертации:</b> {n}",
+  "tasks.active_item": "\n• <code>{user}</code> — {name} ({size} MB), {elapsed} с",
+  "tasks.jobs_title": "\n\n<b>🔄 Фоновые задачи:</b>",
+  "tasks.job_item": "\n• {name}: {runs} запусков, последний — {last}",
+  "tasks.job_never": "ещё не запускалась",
+  "tasks.none": "\n\nСейчас активных конвертаций нет.",
+
+  "botset.title": "⚙️ <b>Настройки бота</b>",
+  "botset.body": "\n\n🔧 Режим обслуживания: {maintenance}\n🔐 Проверка подписки: {membership}\n\n<i>Режим обслуживания блокирует конвертацию для всех, кроме админов. Проверка подписки — обязательное участие в канале.</i>",
+
+  "channel.title": "📢 <b>Канал для проверки подписки</b>",
+  "channel.current": "\n\nТекущий: <code>{link}</code>",
+  "channel.not_set": "\n\nКанал не задан — проверка подписки отключена.",
+  "channel.usage": "\n\n<b>Смена канала:</b>\n<code>/setchannel &lt;ссылка&gt;</code>\n\n<b>Форматы:</b>\n• <code>@username</code>\n• <code>-1001234567890</code>\n• <code>https://t.me/username</code>\n• <code>https://t.me/c/1234567890</code>\n\n<b>Отключить:</b> /clearchannel",
+
+  "users.title": "👥 <b>Пользователи</b>",
+  "users.body": "\n\nВсего: {total}\nНовых за сутки: {new_day}",
+  "users.item": "\n\n🆔 <code>{user_id}</code> — {name}\n   {plan}, с {created}",
+
+  "conv.downloading": "⏳ Скачиваю видео…",
+  "conv.converting": "🔄 Конвертирую в кружок…",
+  "conv.uploading": "📤 Отправляю кружок…",
+  "conv.too_big": "❌ Файл слишком большой: {size} MB.\nЛимит вашего тарифа: {limit} MB.",
+  "conv.too_long": "❌ Видео слишком длинное: {duration} с.\nЛимит вашего тарифа: {limit} с.",
+  "conv.unsupported": "❌ Неподдерживаемый формат: {ext}",
+  "conv.daily_limit": "❌ Достигнут дневной лимит конвертаций ({limit}).\n\nОформите ⭐ Pro для безлимита или попробуйте завтра.",
+  "conv.error": "❌ Ошибка конвертации. Попробуйте другое видео.",
+  "conv.duration_hint": "❌ Видео не подходит для кружка (макс. ~60 секунд).",
+  "conv.maintenance": "🔧 <b>Техническое обслуживание</b>\n\nИзвините, конвертация временно недоступна. Попробуйте позже.",
+  "conv.send_video": "📹 Пришлите видео-файл, видео-сообщение или документ с видео — сделаю кружок.",
+
+  "member.denied": "🚫 <b>Доступ ограничен</b>\n\nДля использования бота вступите в наш канал/чат.",
+  "member.join_btn": "Вступить",
+  "member.check": "✅ Проверить подписку",
+
+  "common.admin_only": "⛔ Нет прав администратора.",
+  "common.unknown": "Неизвестная команда."
+}

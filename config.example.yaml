@@ -9,19 +9,37 @@ bot:
   # ID администраторов (узнать через @userinfobot)
   admin_ids: [123456789]
 
+# Язык по умолчанию для новых пользователей: ru | en
+default_language: "ru"
+
 channel:
   # Текст кнопки для вступления в канал/чат
   invite_text: "Вступить в канал"
 
-video:
-  # Максимальный размер исходного видео (MB), 0 = без ограничения
-  max_size_mb: 50
-  # Целевое разрешение кружка (Telegram требует квадрат)
-  target_resolution: 360
-  # CRF для libx264 (18-28, ниже = лучше качество)
-  crf: 24
-  # Пресет кодирования (ultrafast..veryslow)
-  preset: "fast"
+# Тарифы. free — базовый, pro — платный (покупается за Telegram Stars).
+plans:
+  free:
+    max_size_mb: 50          # максимальный размер исходного видео
+    max_duration_sec: 60     # максимальная длительность
+    resolutions: [360]       # доступные разрешения кружка
+    default_resolution: 360
+    crf: 24                  # качество (меньше = лучше)
+    preset: "fast"
+    daily_limit: 5           # конвертаций в день (0 = без лимита)
+  pro:
+    max_size_mb: 200
+    max_duration_sec: 60
+    resolutions: [360, 480, 640]
+    default_resolution: 480
+    crf: 20
+    preset: "medium"
+    daily_limit: 0
+
+# Цены в Telegram Stars (XTR)
+prices:
+  - {code: "pro_30d",  plan: "pro", days: 30,  stars: 100}
+  - {code: "pro_90d",  plan: "pro", days: 90,  stars: 250}
+  - {code: "pro_365d", plan: "pro", days: 365, stars: 800}
 
 logging:
   # DEBUG, INFO, WARNING, ERROR
