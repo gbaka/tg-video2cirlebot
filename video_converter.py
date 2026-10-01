@@ -14,6 +14,19 @@ from typing import Any, ClassVar
 ProgressCallback = Callable[[int], Awaitable[None] | None]
 
 
+def _number(value: Any, default: float | None = None) -> float | None:
+    """Число из вывода ffprobe; «N/A», мусор и nan/inf означают «неизвестно».
+
+    ffprobe пишет строку "N/A" для величин, которые не смог определить
+    (типично для контейнеров asf/wmv), — это не поломка файла.
+    """
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return result if math.isfinite(result) else default
+
+
 class VideoConverter:
     FPS = 30
     MAXRATE = "4M"
@@ -107,6 +120,9 @@ class VideoConverter:
                     line, _, rest = pending.partition(b"\n")
                     pending = bytearray(rest)
                     if line.startswith(b"out_time_us=") and duration > 0:
+                        # Значение приходит от ffmpeg, а не от нас: пока время выхода
+                        # неизвестно, он пишет «N/A» (и мусор при битом таймстампе).
+                        # Это не ошибка конвертации — просто пропускаем строку.
                         try:
                             value = min(
                                 99,
@@ -115,6 +131,9 @@ class VideoConverter:
                                     int(float(line.split(b"=", 1)[1]) / 1_000_000 / duration * 100),
                                 ),
                             )
+                        except (ValueError, OverflowError, ZeroDivisionError):
+                            continue
+                        try:
                             if value > last:
                                 result = progress(value)
                                 if inspect.isawaitable(result):
@@ -201,7 +220,11 @@ class VideoConverter:
         if not stream:
             raise ValueError("video stream not found")
         width, height = int(stream.get("width", 0)), int(stream.get("height", 0))
-        duration = float(data.get("format", {}).get("duration", stream.get("duration", 0)))
+        duration = _number(data.get("format", {}).get("duration"))
+        if duration is None:
+            duration = _number(stream.get("duration"))
+        if duration is None:
+            duration = 0.0
         if (
             not 0 < width <= 8192
             or not 0 < height <= 8192
@@ -210,10 +233,10 @@ class VideoConverter:
             or duration <= 0
         ):
             raise ValueError("invalid video dimensions or duration")
-        rotation = float(stream.get("tags", {}).get("rotate", 0))
+        rotation = _number(stream.get("tags", {}).get("rotate"), 0.0) or 0.0
         for side in stream.get("side_data_list", []):
             if "rotation" in side:
-                rotation = float(side["rotation"])
+                rotation = _number(side["rotation"], rotation) or rotation
         sar = stream.get("sample_aspect_ratio", "1:1")
         # FFprobe reports unspecified SAR as N/A or 0:1; both mean square pixels.
         if sar in {"N/A", "0:1"}:

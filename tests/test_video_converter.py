@@ -140,6 +140,47 @@ async def test_rotation_sar_probe_and_conversion_are_display_correct(source, tmp
         assert not meta["rotation"]
 
 
+async def test_unparseable_progress_value_is_not_fatal():
+    """ffmpeg пишет out_time_us=N/A, пока время выхода неизвестно.
+
+    Раньше это валило всю конвертацию: ValueError из float() попадал в
+    callback_error и _process поднимал его как ошибку обработки.
+    """
+    reported = []
+    script = "\n".join([
+        "import sys",
+        "sys.stdout.write('out_time_us=N/A\\nout_time_ms=N/A\\n')",
+        "sys.stdout.write('out_time_us=500000\\n')",
+        "sys.stdout.write('progress=end\\n')",
+        "sys.stdout.flush()",
+    ])
+    await VideoConverter._process(
+        [sys.executable, "-c", script],
+        timeout=5,
+        duration=1,
+        progress=reported.append,
+    )
+    assert reported == [50], reported
+
+
+async def test_progress_survives_a_missing_value_after_a_valid_one():
+    """После настоящего значения N/A тоже не должен ломать подсчёт."""
+    reported = []
+    script = "\n".join([
+        "import sys",
+        "for line in ('out_time_us=250000', 'out_time_us=N/A', 'out_time_us=900000'):",
+        "    sys.stdout.write(line + '\\n')",
+        "    sys.stdout.flush()",
+    ])
+    await VideoConverter._process(
+        [sys.executable, "-c", script],
+        timeout=5,
+        duration=1,
+        progress=reported.append,
+    )
+    assert reported == [25, 90], reported
+
+
 async def test_progress_callback_failure_reaps_child(tmp_path):
     pidfile = tmp_path / "callback-pid"
 
@@ -286,6 +327,54 @@ async def test_probe_rejects_oversized_normalized_pixel_area(monkeypatch):
     monkeypatch.setattr(VideoConverter, "_process", staticmethod(process))
     with pytest.raises(ValueError):
         await VideoConverter.probe("local.mp4")
+
+
+def _probe_output(stream: dict, fmt: dict | None = None) -> bytes:
+    import json
+
+    return json.dumps({"streams": [stream], "format": fmt or {}}).encode()
+
+
+async def test_probe_falls_back_to_stream_duration_when_format_says_na(monkeypatch):
+    """ffprobe пишет duration: "N/A" — это «неизвестно», а не поломка файла."""
+    stream = {"codec_type": "video", "width": 160, "height": 90,
+              "duration": "5.0", "sample_aspect_ratio": "1:1"}
+
+    async def process(*_args, **_kwargs):
+        return _probe_output(stream, {"duration": "N/A"})
+
+    monkeypatch.setattr(VideoConverter, "_process", staticmethod(process))
+    meta = await VideoConverter.probe("clip.wmv")
+    assert meta["duration"] == 5.0
+    assert meta["width"] == 160
+
+
+async def test_probe_tolerates_non_numeric_rotation(monkeypatch):
+    """rotate из тегов тоже может быть N/A — считаем его отсутствующим."""
+    stream = {"codec_type": "video", "width": 160, "height": 90, "duration": 5,
+              "sample_aspect_ratio": "1:1", "tags": {"rotate": "N/A"},
+              "side_data_list": [{"rotation": "N/A"}]}
+
+    async def process(*_args, **_kwargs):
+        return _probe_output(stream)
+
+    monkeypatch.setattr(VideoConverter, "_process", staticmethod(process))
+    meta = await VideoConverter.probe("clip.wmv")
+    assert meta["rotation"] == 0
+    assert meta["display_width"] == 160 and meta["display_height"] == 90
+
+
+async def test_probe_still_rejects_a_file_without_any_duration(monkeypatch):
+    """Если длительность неизвестна совсем — это не валидное видео."""
+    stream = {"codec_type": "video", "width": 160, "height": 90,
+              "duration": "N/A", "sample_aspect_ratio": "1:1"}
+
+    async def process(*_args, **_kwargs):
+        return _probe_output(stream, {"duration": "N/A"})
+
+    monkeypatch.setattr(VideoConverter, "_process", staticmethod(process))
+    with pytest.raises(ValueError):
+        await VideoConverter.probe("clip.wmv")
 
 
 async def test_broken_input_never_leaves_output(tmp_path):
