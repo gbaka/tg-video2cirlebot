@@ -17,6 +17,7 @@ from repositories import (  # noqa: E402
     PaymentRepo,
     SettingsRepo,
     SubscriptionRepo,
+    SupportRepo,
     UsageRepo,
     UserRepo,
 )
@@ -64,3 +65,8 @@ def channel(db: Database) -> ChannelRepo:
 @pytest.fixture
 def payments(db: Database) -> PaymentRepo:
     return PaymentRepo(db)
+
+
+@pytest.fixture
+def support(db: Database) -> SupportRepo:
+    return SupportRepo(db)

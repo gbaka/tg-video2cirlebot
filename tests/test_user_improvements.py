@@ -7,13 +7,15 @@ from aiogram.filters import CommandObject
 
 import menus
 from handlers.user import menu, settings
+from locks import UserLocks
 
 
-async def test_paysupport_relays_request_to_admin(monkeypatch):
+async def test_paysupport_relays_request_to_admin(monkeypatch, support):
     fn = getattr(menu, "cmd_paysupport", None)
     assert fn is not None
     bot = NS(send_message=AsyncMock())
-    ctx = NS(bot=bot, config=NS(bot=NS(admin_ids=[999])))
+    ctx = NS(bot=bot, config=NS(bot=NS(admin_ids=[999])), locks=UserLocks(),
+             support=support)
     monkeypatch.setattr(menu, "get_ctx", lambda: ctx)
     monkeypatch.setattr(menu, "ensure_user", AsyncMock(return_value={"user_id": 7,
                                                                        "language": "ru"}))
@@ -72,13 +74,15 @@ def test_video_controls_available_to_all_plans(pro):
     assert {"m:framing", "m:fragment"} <= callbacks
 
 
-async def test_support_does_not_claim_delivery_when_admins_unreachable(monkeypatch):
+async def test_support_does_not_claim_delivery_when_admins_unreachable(monkeypatch, support):
     monkeypatch.setattr(menu, "ensure_user", AsyncMock(return_value={
         "user_id": 7, "language": "ru",
     }))
     monkeypatch.setattr(menu, "get_ctx", lambda: NS(
         config=NS(bot=NS(admin_ids=[1, 2])),
         bot=NS(send_message=AsyncMock(side_effect=RuntimeError("blocked"))),
+        locks=UserLocks(),
+        support=support,
     ))
     message = NS(answer=AsyncMock())
     await menu.cmd_paysupport(message, CommandObject(command="paysupport", args="help"))

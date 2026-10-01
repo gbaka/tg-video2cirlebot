@@ -50,6 +50,10 @@ api:
   base_url: ""              # например http://bot-api:8081
   local: false
 
+support:                     # лимиты против спама в /paysupport
+  cooldown_sec: 120          # пауза между обращениями, сек (0 = без паузы)
+  daily_limit: 3             # обращений в сутки (0 = без лимита)
+
 processing:
   workers: 1                # параллельных задач; для 1 CPU / 512 MB оставьте 1
   queue_size: 20            # максимальное число ожидающих пачек

@@ -87,15 +87,45 @@ async def cmd_terms(message: Message) -> None:
     await message.answer(t(user["language"], "support.terms"), parse_mode="HTML")
 
 
+def _support_limits(ctx) -> tuple[int, int]:
+    """Anti-spam limits for /paysupport; older configs have no support section."""
+    cfg = getattr(ctx.config, "support", None)
+    return (
+        int(getattr(cfg, "cooldown_sec", 120)),
+        int(getattr(cfg, "daily_limit", 3)),
+    )
+
+
 @router.message(Command("paysupport"), private_chat)
 async def cmd_paysupport(message: Message, command: CommandObject) -> None:
     user = await ensure_user(message)
     lang = user["language"]
     body = (command.args or "").strip()
-    if not body:
-        await message.answer(t(lang, "support.instructions"), parse_mode="HTML")
-        return
     ctx = get_ctx()
+    cooldown, daily = _support_limits(ctx)
+    if not body:
+        await message.answer(
+            t(lang, "support.instructions", cooldown=cooldown // 60, daily=daily),
+            parse_mode="HTML",
+        )
+        return
+    # Serialise one user's attempts: parallel commands would otherwise all pass
+    # the same stale check and forward duplicate messages to the admins.
+    async with ctx.locks.hold(user["user_id"]):
+        left = await ctx.support.cooldown_left(user["user_id"], cooldown)
+        if left:
+            await message.answer(
+                t(lang, "support.rate_limited", seconds=left), parse_mode="HTML"
+            )
+            return
+        if daily and await ctx.support.count_today(user["user_id"]) >= daily:
+            await message.answer(
+                t(lang, "support.daily_limit", limit=daily), parse_mode="HTML"
+            )
+            return
+        # Record before delivery: the point of the limit is to bound what reaches
+        # the admins, so a failed delivery must not restore the quota.
+        await ctx.support.record(user["user_id"])
     delivered = False
     # Never include payment credentials; user supplies the issue and their ID is attached.
     text = (f"Payment support · <code>{user['user_id']}</code>\n"

@@ -30,6 +30,7 @@ from repositories import (
     PaymentRepo,
     SettingsRepo,
     SubscriptionRepo,
+    SupportRepo,
     UsageRepo,
     UserRepo,
 )
@@ -168,6 +169,7 @@ async def run_bot(config: Config, bot: Bot) -> int:
         config=config, plans=config.plans, db=db,
         users=UserRepo(db), subs=SubscriptionRepo(db), usage=UsageRepo(db),
         settings=SettingsRepo(db), channel=ChannelRepo(db), payments=PaymentRepo(db),
+        support=SupportRepo(db),
         tasks=TaskRegistry(), jobs=JobRunner(), bot=bot,
         channel_checker=ChannelChecker(bot, channel_link),
         converter=VideoConverter(

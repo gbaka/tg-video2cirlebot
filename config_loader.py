@@ -42,6 +42,7 @@ DEFAULTS: dict[str, Any] = {
         "workers": 1, "queue_size": 20, "probe_timeout_sec": 15,
         "encode_timeout_sec": 120, "shutdown_timeout_sec": 30, "temp_dir": "data/tmp",
     },
+    "support": {"cooldown_sec": 120, "daily_limit": 3},
 }
 
 
@@ -85,6 +86,14 @@ class ProcessingConfig:
 
 
 @dataclass
+class SupportConfig:
+    """Anti-spam limits for /paysupport; 0 disables the corresponding limit."""
+
+    cooldown_sec: int = 120
+    daily_limit: int = 3
+
+
+@dataclass
 class Config:
     bot: BotConfig
     channel: ChannelConfig
@@ -93,6 +102,7 @@ class Config:
     default_language: str = "ru"
     api: APIConfig = field(default_factory=APIConfig)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    support: SupportConfig = field(default_factory=SupportConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "Config":
@@ -130,6 +140,7 @@ class Config:
             default_language=data.get("default_language", "ru"),
             api=APIConfig(**data["api"]),
             processing=ProcessingConfig(**data["processing"]),
+            support=SupportConfig(**data["support"]),
         )
 
     def validate(self) -> list[str]:
@@ -199,6 +210,10 @@ class Config:
         temp = Path(self.processing.temp_dir)
         if not self.processing.temp_dir or str(temp) in {"/", ".", "/tmp", "/var/tmp"}:
             errors.append("processing.temp_dir: нужен выделенный каталог бота")
+        if not 0 <= self.support.cooldown_sec <= 86400:
+            errors.append("support.cooldown_sec: от 0 (без паузы) до 86400 секунд")
+        if not 0 <= self.support.daily_limit <= 100:
+            errors.append("support.daily_limit: от 0 (без лимита) до 100 обращений в сутки")
         return errors
 
 
@@ -216,6 +231,7 @@ def _check_types(data: Any) -> None:
             "encode_timeout_sec": (int, float), "shutdown_timeout_sec": (int, float),
             "temp_dir": str,
         },
+        "support": {"cooldown_sec": int, "daily_limit": int},
     }
     plan_schema: dict[str, type | tuple[type, ...]] = {
         "max_size_mb": int, "max_duration_sec": int, "resolutions": list,

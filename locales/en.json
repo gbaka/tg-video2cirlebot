@@ -123,13 +123,13 @@
   "video.fragment_value": "from {start}s, for {duration}s",
   "video.fragment_none": "entire video (within plan limits)",
   "video.options": "\n\n📐 Framing: {mode}\n✂️ Fragment: {fragment}",
-  "support.instructions": "💬 <b>Payment support</b>\n\nSend <code>/paysupport description of the issue</code> to forward your message and Telegram ID to the bot administrators. Include the payment date and amount, but never passwords, tokens or payment credentials. Use this command to request a refund too.",
+  "support.instructions": "💬 <b>Payment support</b>\n\nSend <code>/paysupport description of the issue</code> to forward your message and Telegram ID to the bot administrators. Include the payment date and amount, but never passwords, tokens or payment credentials. Use this command to request a refund too.\n\nAnti-spam limit: one request per {cooldown} min, up to {daily} per day.",
   "support.sent": "✅ Your request was sent to the administrators. Their reply will arrive in this chat.",
   "support.unavailable": "❌ Could not deliver the message. Please try again later.",
   "support.reply_usage": "Usage: <code>/supportreply &lt;ID&gt; &lt;text&gt;</code>. The user must be in the database.",
   "support.reply": "💬 <b>Support reply</b>\n\n{text}",
   "support.reply_sent": "✅ Support reply sent.",
-  "support.terms": "📄 <b>Terms of use</b>\n\nThe bot converts your videos into Telegram video notes. Only submit material you are entitled to process. Current limits and prices appear in Subscription; the cloud Bot API limits downloads to 20 MB.\n\nPro is paid with Telegram Stars. Fixed-term purchases extend the current term; lifetime access is never shortened by renewal. Cancellation disables Pro immediately and forfeits remaining time; Stars are not refunded automatically. Payment issues and refund requests: /paysupport. Automatic renewal is not enabled.\n\nThe bot stores your Telegram ID, name, preferences, usage statistics and payment records in SQLite. Source and output files are deleted after processing; Telegram file identifiers are retained for repeat delivery. Support messages are shared with administrators. Contact /paysupport about your data.\n\n/help and /paysupport are available; maintenance or failures may interrupt service.",
+  "support.terms": "📄 <b>Terms of use</b>\n\nThe bot converts your videos into Telegram video notes. Only submit material you are entitled to process. Current limits and prices appear in Subscription; the cloud Bot API limits downloads to 20 MB.\n\nPro is paid with Telegram Stars. Fixed-term purchases extend the current term; lifetime access is never shortened by renewal. Cancellation disables Pro immediately and forfeits remaining time; Stars are not refunded automatically. Payment issues and refund requests: /paysupport. Automatic renewal is not enabled.\n\nThe bot stores your Telegram ID, name, preferences, usage statistics and payment records on the bot's server. Source and output files are deleted after processing; Telegram file identifiers are retained for repeat delivery. Support messages are shared with administrators. Contact /paysupport about your data.\n\n/help and /paysupport are available; maintenance or failures may interrupt service.",
   "channel.invite_required": "❌ A private channel needs a working invite link: <code>/setchannel -1001234567890 https://t.me/+invite</code>. Add the bot as an administrator.",
   "channel.access_error": "❌ Cannot access this channel/chat.\n<code>{error}</code>",
   "channel.save_error": "❌ Could not save the channel setting. Please try later.",
@@ -139,5 +139,7 @@
   "conv.queue_full": "The queue is full. Please send your video later.",
   "conv.queue_closed": "The bot is shutting down. Please retry after startup.",
   "conv.queued": "Video accepted. Queue position: {position}.",
-  "tasks.queued": "\n\n⏳ Batches waiting: {count}"
+  "tasks.queued": "\n\n⏳ Batches waiting: {count}",
+  "support.rate_limited": "⏳ Too often. You can send the next request in {seconds} s.",
+  "support.daily_limit": "⚠️ Today's support limit is used up ({limit}). Try again tomorrow or wait for an admin reply."
 }

@@ -19,6 +19,7 @@ from repositories import (
     PaymentRepo,
     SettingsRepo,
     SubscriptionRepo,
+    SupportRepo,
     UsageRepo,
     UserRepo,
 )
@@ -40,6 +41,7 @@ class AppContext:
     settings: SettingsRepo
     channel: ChannelRepo
     payments: PaymentRepo
+    support: SupportRepo
     tasks: TaskRegistry
     jobs: JobRunner
     bot: Bot

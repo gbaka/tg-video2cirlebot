@@ -94,6 +94,14 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_ts ON payments(ts);
+
+-- Обращения в поддержку: нужны только для ограничения спама
+CREATE TABLE IF NOT EXISTS support_requests (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    ts         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_support_user_ts ON support_requests(user_id, ts);
 """
 
 # Догоняющие миграции: (таблица, колонка, тип).

@@ -96,6 +96,10 @@ api:
   base_url: ""              # для local Bot API: http://bot-api:8081
   local: false              # local требует общего каталога файлов
 
+support:                     # лимиты против спама в /paysupport
+  cooldown_sec: 120          # пауза между обращениями, сек (0 = без паузы)
+  daily_limit: 3             # обращений в сутки (0 = без лимита)
+
 processing:
   workers: 1
   queue_size: 20
@@ -135,7 +139,7 @@ logging:
 | `/help` | все | Справка |
 | `/fragment <начало> <длительность>` | все | Фрагмент в секундах или MM:SS; `/fragment reset` отключает выбор |
 | `/terms` | все | Условия и описание хранения данных |
-| `/paysupport <описание>` | все | Передать обращение об оплате администраторам |
+| `/paysupport <описание>` | все | Передать обращение об оплате администраторам; лимиты `support.cooldown_sec` и `support.daily_limit` |
 | `/supportreply <ID> <ответ>` | админ | Ответить пользователю от имени бота |
 | `/setlanguage` | все | Сменить язык |
 | `/admin` | админ | Админ-меню |
@@ -148,6 +152,42 @@ logging:
 | `/setchannel <ID/ссылка> [invite]` | админ | Установить канал и приглашение для приватного канала |
 | `/channel` | админ | Показать текущий канал |
 | `/clearchannel` | админ | Отключить проверку подписки |
+
+### Подсказки команд только для администраторов
+
+Список команд в клиенте Telegram задаётся через Bot API, а не в коде бота.
+В BotFather `/setcommands` пишет список для **всего** бота: админские команды в нём
+увидят все пользователи. Права они не дают (их проверяет `admin_guard`), но и
+подсказывать их посторонним незачем. У настройки есть scope — и один из вариантов
+(`BotCommandScopeChat`) задаёт список для **конкретного чата**:
+
+- `BotCommandScopeDefault` — базовый список, если для чата не задано иного;
+- `BotCommandScopeAllPrivateChats` — все личные чаты;
+- `BotCommandScopeChat(chat_id=...)` — один чат; личный чат с ботом имеет тот же
+  ID, что и пользователь, поэтому это фактически «подсказки для одного пользователя»;
+- `BotCommandScopeChatMember` / `ChatAdministrators` / `AllChatAdministrators` —
+  только для групповых администраторов; в личных чатах Bot API такие scope
+  отклоняет (`can't use specified scope in private chats`).
+
+Список для конкретного чата переопределяет базовый, поэтому админу достаточно
+выставить свой scope один раз (и повторять при смене `bot.admin_ids`):
+
+```python
+from aiogram.types import BotCommand, BotCommandScopeChat
+
+USER_COMMANDS = [BotCommand(command="start", description="Главное меню")]
+ADMIN_COMMANDS = USER_COMMANDS + [BotCommand(command="stats", description="Статистика")]
+
+async def publish_command_hints(bot, admin_ids):
+    await bot.set_my_commands(USER_COMMANDS)  # базовый: виден всем
+    for admin_id in admin_ids:
+        await bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=admin_id))
+```
+
+Ограничения: `setMyCommands` требует, чтобы бот уже имел этот чат (админ запускал
+бота), иначе `chat not found`; удалять такие списки нужно тоже явно — `deleteMyCommands`
+без scope чистит только базовый. Кэш клиента Telegram может показывать старый список
+до перезапуска приложения.
 
 ### Форматы ссылок на канал/чат
 
@@ -296,12 +336,14 @@ mypy .            # проверка типов
 `MIGRATIONS` в `db.py`) добавляют недостающие колонки через `ALTER TABLE`.
 
 | Таблица | Индексы |
-
 |---------|---------|
 | `users` | `created_at`, `last_seen`, `username` |
 | `subscriptions` | `(user_id, active)`, `expires_at`, UNIQUE user_id WHERE active=1 |
 | `usage` | `ts`, `user_id`, `(user_id, ts)`, `(status, ts)` |
 | `payments` | `user_id`, `ts` |
+| `issued_invoices` | `user_id` |
+| `conversion_cache` | PRIMARY KEY `cache_key` |
+| `support_requests` | `(user_id, ts)` — журнал для лимитов `/paysupport` |
 
 Миграция дубликатов сохраняет историю, оставляет единственную активную запись
 с наиболее дальним сроком и не укорачивает бессрочную подписку. Новые колонки

@@ -10,6 +10,7 @@ from repositories.channel import ChannelRepo
 from repositories.payments import PaymentRepo
 from repositories.settings import SettingsRepo
 from repositories.subscriptions import SubscriptionRepo
+from repositories.support import SupportRepo
 from repositories.usage import UsageRepo
 from repositories.users import UserRepo
 
@@ -20,6 +21,7 @@ __all__ = [
     "PaymentRepo",
     "SettingsRepo",
     "SubscriptionRepo",
+    "SupportRepo",
     "UsageRepo",
     "UserRepo",
     "is_lifetime",
