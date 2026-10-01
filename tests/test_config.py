@@ -93,9 +93,51 @@ def test_example_config_is_valid() -> None:
     config = Config.load(str(root / "config.example.yaml"))
     assert config.plans.prices
     assert config.plans.free.max_album >= 1
+    assert config.validate() == []
+    assert config.warnings() == []
 
 
-@pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR"])
+def _leaf_paths(data: dict, prefix: str = "") -> dict[str, object]:
+    """Плоский список «путь → значение» для вложенных словарей и списков словарей."""
+    flat: dict[str, object] = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            flat.update(_leaf_paths(value, path))
+        elif isinstance(value, list) and value and isinstance(value[0], dict):
+            for index, item in enumerate(value):
+                flat.update(_leaf_paths(item, f"{path}[{index}]"))
+        else:
+            flat[path] = value
+    return flat
+
+
+def test_example_config_mirrors_the_shipped_defaults() -> None:
+    """Каждая настройка из DEFAULTS описана в примере и совпадает по значению.
+
+    Иначе новый ключ появляется в коде и не попадает в шаблон, а старый в
+    примере начинает расходиться с реальным поведением — именно так в примере
+    оказалось «max_size_mb: 200», которого в коде уже не было.
+    """
+    from config_loader import DEFAULTS
+
+    root = Path(__file__).resolve().parent.parent
+    example = yaml.safe_load((root / "config.example.yaml").read_text(encoding="utf-8"))
+    documented = _leaf_paths(example)
+    defaults = _leaf_paths(DEFAULTS)
+    # Плейсхолдеры заполняет оператор, в DEFAULTS их нет.
+    skip = {"bot.token", "bot.admin_ids"}
+    missing = sorted(p for p in defaults if p not in documented and p not in skip)
+    assert not missing, f"не описаны в config.example.yaml: {missing}"
+    for path, value in defaults.items():
+        if path in skip:
+            continue
+        assert documented[path] == value, (
+            f"{path}: пример {documented[path]!r}, DEFAULTS {value!r}"
+        )
+
+
+@pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 def test_log_level_passthrough(tmp_path: Path, level: str) -> None:
     path = write_config(tmp_path / "c.yaml", {
         "bot": {"token": "1:A", "admin_ids": [1]},

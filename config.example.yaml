@@ -64,5 +64,5 @@ processing:
   temp_dir: "data/tmp"      # отдельный каталог; путь относительно main.py
 
 logging:
-  # DEBUG, INFO, WARNING, ERROR
+  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   level: "INFO"
