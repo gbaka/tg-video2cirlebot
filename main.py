@@ -194,7 +194,9 @@ async def run_bot(config: Config, bot: Bot) -> int:
         me = await bot.get_me()
         logger.info("Бот @%s запущен", me.username)
         try:
-            failed = await publish_command_hints(bot, config.bot.admin_ids)
+            failed = await publish_command_hints(
+                bot, config.bot.admin_ids, fallback=config.default_language,
+            )
         except Exception:  # подсказки не должны мешать запуску
             logger.exception("Публикация подсказок команд не удалась")
         else:

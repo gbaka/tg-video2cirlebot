@@ -22,7 +22,7 @@ from aiogram.types import (
     BotCommandScopeDefault,
 )
 
-from i18n import t
+from i18n import DEFAULT_LANG, SUPPORTED, t
 
 logger = logging.getLogger(__name__)
 
@@ -55,19 +55,23 @@ ADMIN_COMMANDS = (
 
 BASE_SCOPES = (BotCommandScopeDefault(), BotCommandScopeAllPrivateChats())
 # Языки подсказок плюс вариант без language_code как запасной для прочих языков.
-LANGS = (None, "ru", "en")
+# Список языков берётся из локалей: иначе новая локаль появится в меню команд
+# по-прежнему на русском.
+LANGS: tuple[str | None, ...] = (None, *SUPPORTED)
 
 
-def build(commands, lang: str | None) -> list[BotCommand]:
+def build(commands, lang: str | None, fallback: str = DEFAULT_LANG) -> list[BotCommand]:
     """Собирает список команд с описаниями из локалей."""
-    language = lang or "ru"
+    language = lang or fallback
     return [
         BotCommand(command=name, description=t(language, f"cmd.{name}"))
         for name in commands
     ]
 
 
-async def publish_command_hints(bot: Bot, admin_ids) -> list[str]:
+async def publish_command_hints(
+    bot: Bot, admin_ids, fallback: str = DEFAULT_LANG,
+) -> list[str]:
     """Пишет базовый список всем и расширенный — в личный чат каждого админа.
 
     Возвращает список того, что применить не удалось (например, админ ещё не
@@ -76,7 +80,7 @@ async def publish_command_hints(bot: Bot, admin_ids) -> list[str]:
     """
     failed: list[str] = []
     for lang in LANGS:
-        commands = build(USER_COMMANDS, lang)
+        commands = build(USER_COMMANDS, lang, fallback)
         for scope in BASE_SCOPES:
             try:
                 await bot.set_my_commands(commands, scope=scope, language_code=lang)
@@ -86,7 +90,7 @@ async def publish_command_hints(bot: Bot, admin_ids) -> list[str]:
                                type(scope).__name__, lang, e)
     for admin_id in admin_ids:
         for lang in LANGS:
-            commands = build(ADMIN_COMMANDS, lang)
+            commands = build(ADMIN_COMMANDS, lang, fallback)
             try:
                 await bot.set_my_commands(
                     commands,

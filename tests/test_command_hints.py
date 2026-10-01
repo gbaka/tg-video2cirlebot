@@ -14,6 +14,7 @@ from aiogram.types import (
 )
 
 import command_hints
+import i18n
 from command_hints import ADMIN_COMMANDS, USER_COMMANDS, build, publish_command_hints
 from i18n import load_locales, t
 
@@ -79,7 +80,7 @@ def test_registered_admin_commands_are_in_the_admin_list():
 
 def test_descriptions_exist_in_every_language_and_fit_the_limit():
     for name in ADMIN_COMMANDS:
-        for lang in ("ru", "en"):
+        for lang in i18n.SUPPORTED:
             text = t(lang, f"cmd.{name}")
             assert text != f"cmd.{name}", f"нет описания cmd.{name} ({lang})"
             assert 1 <= len(text) <= 256, f"описание cmd.{name} ({lang}) вне лимита"
@@ -153,7 +154,31 @@ async def test_language_variants_and_plain_fallback_are_published():
     await publish_command_hints(bot, [111])
     langs = {c[2] for c in bot.calls if c[0] == "BotCommandScopeDefault"}
     assert langs == set(command_hints.LANGS), "нет запасного списка без language_code"
-    assert "ru" in langs and "en" in langs
+    # каждая локаль должна получить свой список, а не только ru/en
+    assert set(i18n.SUPPORTED) <= langs, langs
+    for code in i18n.SUPPORTED:
+        assert code in langs, f"нет подсказок для языка {code}"
+
+
+async def test_every_language_gets_its_own_descriptions():
+    """Описания команд не должны оставаться русскими для остальных языков."""
+    bot = FakeBot()
+    await publish_command_hints(bot, [])
+    described = {c[2]: c[3][0].description for c in bot.calls
+                 if c[0] == "BotCommandScopeDefault"}
+    assert described[None] == t("ru", "cmd.start"), "запасной список не на ru"
+    for code in i18n.SUPPORTED:
+        assert described[code] == t(code, "cmd.start"), code
+    assert described["kk"] != described[None], "казахский повторяет запасной список"
+
+
+async def test_fallback_list_follows_the_configured_default_language():
+    bot = FakeBot()
+    await publish_command_hints(bot, [], fallback="de")
+    described = {c[2]: c[3][0].description for c in bot.calls
+                 if c[0] == "BotCommandScopeDefault"}
+    assert described[None] == t("de", "cmd.start")
+    assert described["de"] == t("de", "cmd.start")
 
 
 async def test_admin_chat_failure_does_not_stop_other_admins():
