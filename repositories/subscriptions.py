@@ -23,42 +23,71 @@ class SubscriptionRepo(Base):
             await conn.close()
 
     async def activate(
-        self, user_id: int, plan: str, days: int, source: str,
-        charge_id: str | None = None, lifetime: bool = False,
+        self,
+        user_id: int,
+        plan: str,
+        days: int,
+        source: str,
+        charge_id: str | None = None,
+        lifetime: bool = False,
     ) -> str:
-        """Активирует подписку. Если активна — продлевает от текущей даты окончания."""
+        """Serialize the read and grant in one write transaction."""
         conn = await self._conn()
         try:
-            cur = await conn.execute(
-                "SELECT expires_at FROM subscriptions WHERE user_id = ? AND active = 1 "
-                "AND expires_at > ? ORDER BY expires_at DESC LIMIT 1",
-                (user_id, now()),
-            )
-            row = await cur.fetchone()
-            base = None
-            if row:
-                # Бессрочную подписку не продлеваем — она уже максимальная
-                if is_lifetime(row["expires_at"]):
-                    return row["expires_at"]
-                base = datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S")
-                await conn.execute(
-                    "UPDATE subscriptions SET active = 0 WHERE user_id = ? AND active = 1",
-                    (user_id,),
-                )
-            if base is None:
-                base = datetime.now(UTC)
-            expires = LIFETIME_EXPIRES if lifetime else (
-                base + timedelta(days=days)
-            ).strftime("%Y-%m-%d %H:%M:%S")
-            await conn.execute(
-                "INSERT INTO subscriptions (user_id, plan, expires_at, source, charge_id, active) "
-                "VALUES (?, ?, ?, ?, ?, 1)",
-                (user_id, plan, expires, source, charge_id),
+            await conn.execute("BEGIN IMMEDIATE")
+            expires = await self.activate_in_transaction(
+                conn, user_id, plan, days, source, charge_id, lifetime
             )
             await conn.commit()
             return expires
+        except BaseException:
+            await conn.rollback()
+            raise
         finally:
             await conn.close()
+
+    @staticmethod
+    async def activate_in_transaction(
+        conn,
+        user_id: int,
+        plan: str,
+        days: int,
+        source: str,
+        charge_id: str | None = None,
+        lifetime: bool = False,
+    ) -> str:
+        """Caller MUST own a BEGIN IMMEDIATE transaction; this never commits."""
+        cur = await conn.execute(
+            "SELECT expires_at FROM subscriptions WHERE user_id = ? AND active = 1 "
+            "AND expires_at > ? ORDER BY expires_at DESC LIMIT 1",
+            (user_id, now()),
+        )
+        row = await cur.fetchone()
+        if row and is_lifetime(row["expires_at"]):
+            return row["expires_at"]
+        base = (
+            datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S")
+            if row
+            else (datetime.now(UTC).replace(tzinfo=None))
+        )
+        expires = (
+            LIFETIME_EXPIRES
+            if lifetime
+            else (base + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        )
+        await conn.execute(
+            "UPDATE subscriptions SET active = 0, "
+            "cancelled_at = CASE WHEN expires_at <= ? THEN ? ELSE cancelled_at END, "
+            "cancel_reason = CASE WHEN expires_at <= ? THEN 'expired' ELSE cancel_reason END "
+            "WHERE user_id = ? AND active = 1",
+            (now(), now(), now(), user_id),
+        )
+        await conn.execute(
+            "INSERT INTO subscriptions (user_id, plan, expires_at, source, charge_id, active) "
+            "VALUES (?, ?, ?, ?, ?, 1)",
+            (user_id, plan, expires, source, charge_id),
+        )
+        return expires
 
     async def cancel(self, user_id: int, reason: str = "user") -> dict | None:
         """
@@ -69,6 +98,7 @@ class SubscriptionRepo(Base):
         """
         conn = await self._conn()
         try:
+            await conn.execute("BEGIN IMMEDIATE")
             cur = await conn.execute(
                 "SELECT * FROM subscriptions WHERE user_id = ? AND active = 1 "
                 "AND expires_at > ? ORDER BY expires_at DESC LIMIT 1",

@@ -10,6 +10,7 @@ from aiogram import Bot
 from albums import AlbumBuffer
 from channel_checker import ChannelChecker
 from config_loader import Config
+from conversion_queue import ConversionQueue
 from db import Database
 from locks import UserLocks
 from plans import Plans
@@ -21,7 +22,10 @@ from repositories import (
     UsageRepo,
     UserRepo,
 )
+from repositories.conversion_cache import ConversionCacheRepo
+from request_tracker import RequestTracker
 from tasks import JobRunner, TaskRegistry
+from tempfiles import TempFiles
 from video_converter import VideoConverter
 
 
@@ -43,6 +47,10 @@ class AppContext:
     converter: VideoConverter
     albums: AlbumBuffer = field(default_factory=AlbumBuffer)
     locks: UserLocks = field(default_factory=UserLocks)
+    conversion_queue: ConversionQueue = field(default_factory=ConversionQueue)
+    conversion_cache: ConversionCacheRepo | None = None
+    tempfiles: TempFiles | None = None
+    requests: RequestTracker = field(default_factory=RequestTracker)
 
 
 # Синглтон, заполняется в main()

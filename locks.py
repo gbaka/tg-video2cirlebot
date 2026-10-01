@@ -25,7 +25,7 @@ class UserLocks:
         if lock is None:
             if len(self._locks) >= self._max:
                 # Страховка от неограниченного роста: освобождаем простаивающие
-                for uid in [u for u, lock in self._locks.items() if not lock.locked()]:
+                for uid in [u for u in self._locks if self._refs.get(u, 0) == 0]:
                     self._locks.pop(uid, None)
                     self._refs.pop(uid, None)
             lock = self._locks[user_id] = asyncio.Lock()

@@ -6,21 +6,24 @@
 
 import asyncio
 import logging
-import os
-import tempfile
+import sys
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 from aiogram.fsm.storage.memory import MemoryStorage
 
 import context as ctx_module
 from channel_checker import ChannelChecker
 from config_loader import Config
-from context import AppContext, get_ctx
+from context import AppContext
+from conversion_queue import ConversionQueue
 from db import Database
 from handlers.admin import router as admin_router
 from handlers.user import router as user_router
+from healthcheck import write_heartbeat
 from i18n import load_locales
 from repositories import (
     ChannelRepo,
@@ -30,7 +33,9 @@ from repositories import (
     UsageRepo,
     UserRepo,
 )
+from repositories.conversion_cache import ConversionCacheRepo
 from tasks import JobRunner, TaskRegistry
+from tempfiles import TempFiles
 from video_converter import VideoConverter
 
 logging.basicConfig(
@@ -58,23 +63,23 @@ async def job_expire_subscriptions() -> None:
 
 async def job_cleanup_temp() -> None:
     """Чистит временные файлы конвертации старше 1 часа."""
-    tmp_dir = tempfile.gettempdir()
-    removed = 0
-    import time as _time
-    now = _time.time()
-    try:
-        for name in os.listdir(tmp_dir):
-            path = os.path.join(tmp_dir, name)
-            try:
-                if os.path.isfile(path) and now - os.path.getmtime(path) > 3600:
-                    os.unlink(path)
-                    removed += 1
-            except OSError:
-                continue
-    except FileNotFoundError:
+    if ctx_module.ctx is None or ctx_module.ctx.tempfiles is None:
         return
+    removed = ctx_module.ctx.tempfiles.cleanup(max_age_sec=3600)
     if removed:
-        logger.info("Очищено временных файлов: %d", removed)
+        logger.info("Очищено каталогов задач: %d", removed)
+
+
+async def job_heartbeat() -> None:
+    """Only a responsive app with readable application tables publishes readiness."""
+    if ctx_module.ctx is None:
+        return
+    async with (
+        ctx_module.ctx.db.connect() as connection,
+        connection.execute("SELECT 1 FROM users LIMIT 1") as cursor,
+    ):
+        await cursor.fetchone()
+    write_heartbeat(BASE_DIR / "data" / "health.json")
 
 
 async def job_daily_stats() -> None:
@@ -95,70 +100,112 @@ def build_dispatcher() -> Dispatcher:
     return dp
 
 
-async def main() -> None:
+def build_bot(config: Config) -> Bot:
+    session = None
+    if config.api.local:
+        # Local Bot API files must be shared with this process at the same paths.
+        session = AiohttpSession(api=TelegramAPIServer.from_base(
+            config.api.base_url.rstrip("/"), is_local=True,
+        ))
+    return Bot(
+        token=config.bot.token, session=session,
+        default=DefaultBotProperties(parse_mode="HTML"),
+    )
+
+
+async def main() -> int:
     try:
         config = Config.load(CONFIG_PATH)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, ValueError) as e:
         logger.error("%s", e)
-        logger.error("Скопируйте config.example.yaml в config.yaml и заполните его")
-        return
+        logger.error("Проверьте config.yaml по примеру config.example.yaml")
+        return 1
 
     errors = config.validate()
     if errors:
         for problem in errors:
             logger.error(problem)
-        return
+        return 1
 
     logging.getLogger().setLevel(config.logging.level)
     load_locales(LOCALES_DIR)
 
-    db = Database("/app/data/bot_data.db")
-    await db.init()
-
-    bot = Bot(token=config.bot.token, default=DefaultBotProperties(parse_mode="HTML"))
-    channel_link = await ChannelRepo(db).get_link()
-
-    ctx_module.ctx = AppContext(
-        config=config,
-        plans=config.plans,
-        db=db,
-        users=UserRepo(db),
-        subs=SubscriptionRepo(db),
-        usage=UsageRepo(db),
-        settings=SettingsRepo(db),
-        channel=ChannelRepo(db),
-        payments=PaymentRepo(db),
-        tasks=TaskRegistry(),
-        jobs=JobRunner(),
-        bot=bot,
-        channel_checker=ChannelChecker(bot, channel_link),
-        converter=VideoConverter(),
-    )
-    ctx = get_ctx()
-
-    # Фоновые задачи
-    ctx.jobs.register("expire_subscriptions", job_expire_subscriptions, interval=600)
-    ctx.jobs.register("cleanup_temp", job_cleanup_temp, interval=1800)
-    ctx.jobs.register("daily_stats", job_daily_stats, interval=3600)
-
-    dp = build_dispatcher()
-
-    @dp.startup()
-    async def on_startup() -> None:
-        me = await bot.get_me()
-        logger.info("Бот @%s запущен", me.username)
-        await ctx.jobs.start()
-
-    @dp.shutdown()
-    async def on_shutdown() -> None:
-        logger.info("Остановка бота…")
-        await ctx.jobs.stop()
-
+    bot = build_bot(config)
     try:
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+        return await run_bot(config, bot)
     finally:
         await bot.session.close()
 
 
+async def shutdown_context(ctx: AppContext) -> None:
+    """All drains share one budget; the session stays open until accepted work ends."""
+    deadline = asyncio.get_running_loop().time() + ctx.config.processing.shutdown_timeout_sec
+    await asyncio.sleep(0)  # let already-created update tasks enter the middleware
+    ctx.requests.close()
+    for name, cleanup in (
+        ("albums", ctx.albums.shutdown),
+        ("queue", ctx.conversion_queue.shutdown),
+        ("requests", ctx.requests.shutdown),
+    ):
+        remaining = max(0.0, deadline - asyncio.get_running_loop().time())
+        try:
+            await cleanup(timeout=remaining)
+        except Exception:
+            logger.exception("Shutdown failed: %s", name)
+    await ctx.jobs.stop()
+
+
+async def run_bot(config: Config, bot: Bot) -> int:
+    db = Database(str(BASE_DIR / "data" / "bot_data.db"))
+    health_path = BASE_DIR / "data" / "health.json"
+    health_path.unlink(missing_ok=True)
+    await db.init()
+    channel_link = await ChannelRepo(db).get_link()
+    temp_root = Path(config.processing.temp_dir)
+    if not temp_root.is_absolute():
+        temp_root = BASE_DIR / temp_root
+    ctx = AppContext(
+        config=config, plans=config.plans, db=db,
+        users=UserRepo(db), subs=SubscriptionRepo(db), usage=UsageRepo(db),
+        settings=SettingsRepo(db), channel=ChannelRepo(db), payments=PaymentRepo(db),
+        tasks=TaskRegistry(), jobs=JobRunner(), bot=bot,
+        channel_checker=ChannelChecker(bot, channel_link),
+        converter=VideoConverter(
+            probe_timeout_sec=config.processing.probe_timeout_sec,
+            encode_timeout_sec=config.processing.encode_timeout_sec,
+        ),
+        conversion_queue=ConversionQueue(
+            workers=config.processing.workers, queue_size=config.processing.queue_size,
+        ),
+        conversion_cache=ConversionCacheRepo(db), tempfiles=TempFiles(temp_root),
+    )
+    ctx_module.ctx = ctx
+    dp = None
+    try:
+        ctx.jobs.register("expire_subscriptions", job_expire_subscriptions, interval=600)
+        ctx.jobs.register("cleanup_temp", job_cleanup_temp, interval=1800)
+        ctx.jobs.register("daily_stats", job_daily_stats, interval=3600)
+        ctx.jobs.register("heartbeat", job_heartbeat, interval=10)
+        dp = build_dispatcher()
+        dp.update.outer_middleware(ctx.requests)
+        me = await bot.get_me()
+        logger.info("Бот @%s запущен", me.username)
+        await job_heartbeat()
+        await ctx.jobs.start()
+        await dp.start_polling(
+            bot, allowed_updates=dp.resolve_used_update_types(), close_bot_session=False,
+        )
+        return 0
+    finally:
+        logger.info("Остановка бота…")
+        try:
+            await shutdown_context(ctx)
+        finally:
+            health_path.unlink(missing_ok=True)
+            ctx_module.ctx = None
+            if dp is not None:
+                await dp.storage.close()
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()))

@@ -3,9 +3,11 @@
 """
 
 import logging
+from html import escape
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     Message,
@@ -36,7 +38,9 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
 
 
 @router.message(Command("menu"), private_chat)
-async def cmd_menu(message: Message) -> None:
+async def cmd_menu(message: Message, state: FSMContext | None = None) -> None:
+    if state is not None:
+        await state.clear()
     user = await ensure_user(message)
     lang = await user_lang(user)
     if not await guard(message, lang):
@@ -77,10 +81,70 @@ async def cmd_setlanguage(message: Message) -> None:
     )
 
 
+@router.message(Command("terms"), private_chat)
+async def cmd_terms(message: Message) -> None:
+    user = await ensure_user(message)
+    await message.answer(t(user["language"], "support.terms"), parse_mode="HTML")
+
+
+@router.message(Command("paysupport"), private_chat)
+async def cmd_paysupport(message: Message, command: CommandObject) -> None:
+    user = await ensure_user(message)
+    lang = user["language"]
+    body = (command.args or "").strip()
+    if not body:
+        await message.answer(t(lang, "support.instructions"), parse_mode="HTML")
+        return
+    ctx = get_ctx()
+    delivered = False
+    # Never include payment credentials; user supplies the issue and their ID is attached.
+    text = (f"Payment support · <code>{user['user_id']}</code>\n"
+            f"{escape(body[:1500])}\n\n"
+            f"<code>/supportreply {user['user_id']} &lt;text&gt;</code>")
+    for admin_id in ctx.config.bot.admin_ids:
+        try:
+            await ctx.bot.send_message(admin_id, text, parse_mode="HTML")
+            delivered = True
+        except Exception:
+            logger.warning("Could not deliver support request to admin %s", admin_id)
+    key = "support.sent" if delivered else "support.unavailable"
+    await message.answer(t(lang, key), parse_mode="HTML")
+
+
+@router.message(Command("supportreply"), private_chat)
+async def cmd_supportreply(message: Message, command: CommandObject) -> None:
+    user = await ensure_user(message)
+    lang = user["language"]
+    if not is_admin(user["user_id"]):
+        await message.answer(t(lang, "admin.denied"))
+        return
+    parts = (command.args or "").split(maxsplit=1)
+    try:
+        target_id = int(parts[0])
+        body = parts[1].strip()
+        if not body or not await get_ctx().users.get(target_id):
+            raise ValueError("Unknown user")
+    except (ValueError, IndexError):
+        await message.answer(t(lang, "support.reply_usage"), parse_mode="HTML")
+        return
+    target = await get_ctx().users.get(target_id)
+    target_lang = (target or {}).get("language", "ru")
+    try:
+        await get_ctx().bot.send_message(
+            target_id, t(target_lang, "support.reply", text=escape(body[:1500])), parse_mode="HTML",
+        )
+    except Exception:
+        await message.answer(t(lang, "support.unavailable"))
+        return
+    await message.answer(t(lang, "support.reply_sent"))
+
+
 # ===== Навигация по меню =====
 
 @router.callback_query(F.data == "m:main")
-async def cb_main(cb: CallbackQuery) -> None:
+async def cb_main(cb: CallbackQuery, state: FSMContext | None = None) -> None:
+    if state is not None:
+        await state.clear()
     user = await ensure_user(cb)
     await show_main(cb, user)
     await cb.answer()

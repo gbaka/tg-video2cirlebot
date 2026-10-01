@@ -15,6 +15,7 @@ from access import ensure_user, in_maintenance, is_admin, user_plan
 from context import get_ctx
 from handlers.user.shared import guard, private_chat
 from i18n import t
+from plans import Plan
 from services.conversion import process_batch
 
 logger = logging.getLogger(__name__)
@@ -40,17 +41,28 @@ async def handle_video(message: Message) -> None:
     def menu() -> InlineKeyboardMarkup:
         return menus.main_menu(lang, is_admin(user["user_id"]))
 
+    async def recheck(messages: list[Message]) -> tuple[dict, str, Plan] | None:
+        fresh = await ensure_user(messages[0])
+        fresh_lang = fresh["language"]
+        if await in_maintenance() and not is_admin(fresh["user_id"]):
+            await messages[0].answer(t(fresh_lang, "conv.maintenance"), parse_mode="HTML")
+            return None
+        if not await guard(messages[0], fresh_lang):
+            return None
+        fresh_plan, _ = await user_plan(fresh)
+        return fresh, fresh_lang, fresh_plan
+
     # Альбом: Telegram присылает каждое видео отдельным сообщением с общим
     # media_group_id — копим их и обрабатываем пачкой.
     if message.media_group_id:
         ctx.albums.add(
             message.media_group_id,
             message,
-            lambda msgs: process_batch(ctx, user, lang, plan, msgs, menu),
+            lambda msgs: process_batch(ctx, user, lang, plan, msgs, menu, recheck=recheck),
         )
         return
 
-    await process_batch(ctx, user, lang, plan, [message], menu)
+    await process_batch(ctx, user, lang, plan, [message], menu, recheck=recheck)
 
 
 @router.message(private_chat)

@@ -8,14 +8,15 @@ services:
       dockerfile: Dockerfile
     container_name: video-to-circle-bot
     restart: unless-stopped
+    stop_grace_period: 45s
     # Настройки задаются только в config.yaml (монтируется ниже), ENV не используется.
     volumes:
       # Конфиг монтируется в контейнер (токен, админы, параметры видео)
       - ./config.yaml:/app/config.yaml:ro
       # SQLite база с настройками канала
       - circlebot_data:/app/data
-      # Временные файлы конвертации (совпадает с TMPDIR в Dockerfile)
-      - circlebot_tmp:/tmp/videobot
+      # Выделенный каталог обработки из processing.temp_dir
+      - circlebot_tmp:/app/data/tmp
     # Ограничение ресурсов (подстройте под свой сервер)
     deploy:
       resources:

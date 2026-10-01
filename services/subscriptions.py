@@ -6,6 +6,7 @@
 """
 
 import logging
+import re
 from typing import Any
 
 from context import AppContext
@@ -30,7 +31,7 @@ def expires_label(lang: str, expires_at: str | None) -> str:
 
 def parse_gift_args(args: list[str]) -> tuple[int, int | None, bool] | None:
     """'/gift <ID> [дней|life]' → (user_id, days, lifetime) либо None."""
-    if not args or not args[0].lstrip("-").isdigit():
+    if len(args) not in (1, 2) or not re.fullmatch(r"-?[0-9]{1,18}", args[0]):
         return None
     user_id = int(args[0])
     if len(args) == 1:
@@ -38,7 +39,7 @@ def parse_gift_args(args: list[str]) -> tuple[int, int | None, bool] | None:
     second = args[1].lower()
     if second in LIFETIME_WORDS:
         return user_id, None, True
-    if not second.isdigit():
+    if not re.fullmatch(r"[0-9]{1,6}", second):
         return None
     days = int(second)
     return user_id, (days if days >= 1 else GIFT_DEFAULT_DAYS), False
@@ -79,8 +80,6 @@ async def _notify(ctx: AppContext, user_id: int, key: str, **kwargs: Any) -> Non
     target = await ctx.users.get(user_id)
     lang = (target or {}).get("language") or "ru"
     try:
-        await ctx.bot.send_message(
-            user_id, t(lang, key, **kwargs), parse_mode="HTML"
-        )
+        await ctx.bot.send_message(user_id, t(lang, key, **kwargs), parse_mode="HTML")
     except Exception as e:
         logger.info("Не удалось уведомить %s (%s): %s", user_id, key, e)

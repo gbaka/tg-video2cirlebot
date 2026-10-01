@@ -182,7 +182,8 @@ async def cmd_revoke(message: Message, command: CommandObject) -> None:
     lang = admin["language"]
 
     args = (command.args or "").split()
-    if not args or not args[0].lstrip("-").isdigit():
+    if (len(args) != 1 or not args[0].isascii() or not args[0].isdigit()
+            or len(args[0]) > 16 or not 0 < int(args[0]) < 2**52):
         key = "revoke.usage" if not (command.args or "").strip() else "revoke.bad_args"
         await message.answer(t(lang, key), parse_mode="HTML")
         return

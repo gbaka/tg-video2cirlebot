@@ -12,9 +12,16 @@ venv/
 env/
 .venv/
 
-# Environment
+# Secrets and runtime state (never send to image builder)
+config.yaml
 .env
 .env.local
+data/
+*.db
+*.db-wal
+*.db-shm
+.ruff_cache/
+.mypy_cache/
 
 # IDE
 .vscode/

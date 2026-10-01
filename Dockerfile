@@ -44,7 +44,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # Копируем код приложения
-COPY --chown=appuser:appuser *.py *.yaml ./
+COPY --chown=appuser:appuser *.py config.example.yaml ./
 COPY --chown=appuser:appuser handlers/ ./handlers/
 COPY --chown=appuser:appuser services/ ./services/
 COPY --chown=appuser:appuser repositories/ ./repositories/
@@ -53,7 +53,7 @@ COPY --chown=appuser:appuser locales/ ./locales/
 # Создаем директорию для временных файлов
 RUN mkdir -p /tmp/videobot && chown appuser:appuser /tmp/videobot
 # Создаем директорию для SQLite базы
-RUN mkdir -p /app/data && chown appuser:appuser /app/data
+RUN mkdir -p /app/data/tmp && chown -R appuser:appuser /app/data
 ENV TMPDIR=/tmp/videobot
 
 # Переключаемся на непривилегированного пользователя
@@ -64,8 +64,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python healthcheck.py
 
 # Точка входа
 ENTRYPOINT ["python", "main.py"]

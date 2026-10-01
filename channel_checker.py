@@ -2,8 +2,9 @@
 Утилиты для проверки подписки на канал/чат.
 """
 
-import contextlib
 import logging
+import re
+from urllib.parse import urlsplit
 
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
@@ -20,6 +21,7 @@ class ChannelChecker:
         self.channel_link = channel_link
         self._channel_id: int | None = None
         self._channel_username: str | None = None
+        self._invite_link: str | None = None
         self._parse_channel_link()
 
     def set_link(self, link: str) -> None:
@@ -27,43 +29,46 @@ class ChannelChecker:
         self.channel_link = link or ""
         self._channel_id = None
         self._channel_username = None
+        self._invite_link = None
         self._parse_channel_link()
 
     def _parse_channel_link(self) -> None:
-        """Парсит ссылку на канал для получения ID или username."""
-        if not self.channel_link:
-            return
-
-        link = self.channel_link.strip()
-
-        # @username
-        if link.startswith("@"):
+        """Validate the original identifier before deriving a Bot API ID."""
+        link = self.channel_link
+        username = r"[A-Za-z][A-Za-z0-9_]{4,31}"
+        if re.fullmatch(r"@" + username, link):
             self._channel_username = link[1:]
             return
-
-        # https://t.me/username или https://t.me/c/123456789
-        if "t.me/" in link:
-            parts = link.split("t.me/")[-1].split("/")
-            if parts[0] == "c" and len(parts) > 1:
-                # Приватный канал/чат по ID: https://t.me/c/123456789
-                # Telegram ID = -100 + numeric_id
-                with contextlib.suppress(ValueError):
-                    self._channel_id = -100 * 10**9 - int(parts[1])  # -1001234567890
-            else:
-                # Публичный username
-                self._channel_username = parts[0].split("?")[0]
+        if re.fullmatch(r"-?[0-9]+", link):
+            number = int(link)
+            if 1 <= number <= 997852516352:
+                self._channel_id = -(10**12 + number)
+            elif (-999999999999 <= number <= -1
+                  or -1997852516352 <= number <= -1000000000001):
+                self._channel_id = number
             return
-
-        # Числовой ID (может быть с -100 префиксом или без)
         try:
-            parsed_id = int(link)
-            # Если ID положительный и похож на краткий ID приватного чата — добавляем -100
-            if parsed_id > 0 and parsed_id < 10**10:
-                self._channel_id = -100 * 10**9 - parsed_id
-            else:
-                self._channel_id = parsed_id
+            url = urlsplit(link)
         except ValueError:
-            pass
+            return
+        if (url.scheme != "https" or url.netloc != "t.me"
+                or url.query or url.fragment):
+            return
+        if re.fullmatch(r"/" + username, url.path):
+            self._channel_username = url.path[1:]
+        elif re.fullmatch(r"/c/[0-9]+", url.path):
+            number = int(url.path.split("/")[-1])
+            if 1 <= number <= 997852516352:
+                self._channel_id = -(10**12 + number)
+
+    @staticmethod
+    def valid_invite_link(link: str) -> bool:
+        return bool(re.fullmatch(r"https://t\.me/(?:\+|joinchat/)[A-Za-z0-9_-]{5,128}", link))
+
+    def set_invite_link(self, link: str | None) -> None:
+        if link and not self.valid_invite_link(link):
+            raise ValueError("Invalid Telegram invite link")
+        self._invite_link = link or None
 
     @property
     def chat_id(self) -> int | str | None:
@@ -89,6 +94,8 @@ class ChannelChecker:
 
         try:
             member = await self.bot.get_chat_member(chat_id=self.chat_id, user_id=user_id)
+            if member.status == ChatMemberStatus.RESTRICTED:
+                return bool(getattr(member, "is_member", False))
             return member.status in (
                 ChatMemberStatus.MEMBER,
                 ChatMemberStatus.ADMINISTRATOR,
@@ -125,13 +132,15 @@ class ChannelChecker:
         if not self.chat_id:
             return None
 
+        if self._invite_link:
+            return self._invite_link
         try:
             chat = await self.bot.get_chat(self.chat_id)
-            if chat.invite_link:
-                return chat.invite_link
-            # Пробуем создать ссылку, если бот администратор
-            link = await self.bot.create_chat_invite_link(self.chat_id)
-            return link.invite_link
+            link = chat.invite_link
+            if isinstance(link, str) and self.valid_invite_link(link):
+                self._invite_link = link
+                return link
+            return None
         except Exception as e:
             logger.warning(f"Не удалось получить invite link: {e}")
             return None
@@ -140,10 +149,4 @@ class ChannelChecker:
         """Возвращает URL для вступления в канал/чат."""
         if self._channel_username:
             return f"https://t.me/{self._channel_username}"
-        if self._channel_id:
-            # Для приватных чатов нужен invite link (бот должен быть админом)
-            chat_id = abs(self._channel_id)
-            # Внутренний id чата без префикса -100
-            internal_id = chat_id // 10**9 * 10**9 + chat_id % 10**9
-            return f"https://t.me/c/{internal_id}"
-        return self.channel_link
+        return self._invite_link or ""

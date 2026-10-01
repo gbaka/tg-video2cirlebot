@@ -21,12 +21,13 @@ from access import (
 from context import get_ctx
 from handlers.user.shared import private_chat, show_main
 from i18n import t
-from payments import parse_payload, send_subscription_invoice
+from payments import send_subscription_invoice, validate_payment
 from repositories import is_lifetime
 from tg import cb_data, cb_message
 
 logger = logging.getLogger(__name__)
 router = Router(name="user.billing")
+
 
 @router.callback_query(F.data == "m:sub")
 async def cb_subscription(cb: CallbackQuery) -> None:
@@ -37,17 +38,25 @@ async def cb_subscription(cb: CallbackQuery) -> None:
     free, pro = ctx.plans.free, ctx.plans.pro
 
     if plan.code == "pro":
-        expires = t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"] if sub else None) \
+        expires = (
+            t(lang, "sub.lifetime")
+            if is_lifetime(sub["expires_at"] if sub else None)
             else (sub["expires_at"][:10] if sub else "—")
+        )
         text = t(lang, "sub.title") + t(
-            lang, "sub.current_pro",
-            maxres=max(pro.resolutions), size=pro.max_size_mb,
+            lang,
+            "sub.current_pro",
+            maxres=max(pro.resolutions),
+            size=ctx.config.api.input_limit_bytes(pro.max_size_bytes) // (1024 * 1024),
             expires=expires,
         )
     else:
         text = t(lang, "sub.title") + t(
-            lang, "sub.current_free" if not free.is_unlimited() else "sub.current_free_unlimited",
-            res=free.default_resolution, size=free.max_size_mb, limit=free.daily_limit,
+            lang,
+            "sub.current_free" if not free.is_unlimited() else "sub.current_free_unlimited",
+            res=free.default_resolution,
+            size=ctx.config.api.input_limit_bytes(free.max_size_bytes) // (1024 * 1024),
+            limit=free.daily_limit,
             album=free.max_album,
         )
 
@@ -58,7 +67,7 @@ async def cb_subscription(cb: CallbackQuery) -> None:
 
     await cb_message(cb).edit_text(
         text,
-        reply_markup=menus.subscription_menu(lang, ctx.plans.prices, plan.code == "pro"),
+        reply_markup=menus.subscription_menu(lang, ctx.plans.prices, bool(sub)),
         parse_mode="HTML",
     )
     await cb.answer()
@@ -73,8 +82,7 @@ async def cb_sub_cancel(cb: CallbackQuery) -> None:
     if not sub:
         await cb.answer(t(lang, "sub.cancel_none"), show_alert=True)
         return
-    expires = (t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"])
-               else sub["expires_at"][:10])
+    expires = t(lang, "sub.lifetime") if is_lifetime(sub["expires_at"]) else sub["expires_at"][:10]
     await cb_message(cb).edit_text(
         t(lang, "sub.cancel_confirm", expires=expires),
         reply_markup=menus.sub_cancel_confirm(lang),
@@ -94,7 +102,8 @@ async def cb_sub_cancel_confirm(cb: CallbackQuery) -> None:
         return
     logger.info(
         "Подписка отменена пользователем: user=%s, оставалось до %s",
-        user["user_id"], cancelled["expires_at"],
+        user["user_id"],
+        cancelled["expires_at"],
     )
     await cb_message(cb).edit_text(
         t(lang, "sub.cancel_done"),
@@ -114,17 +123,32 @@ async def cb_buy(cb: CallbackQuery) -> None:
     if not price:
         await cb.answer("N/A", show_alert=True)
         return
-    title = (t(lang, "sub.buy_btn_life", stars=price.stars) if price.lifetime
-             else f"Pro · {price.days} дн." if lang == "ru" else f"Pro · {price.days}d")
-    desc = ("Подписка Pro на видео-кружки" if lang == "ru"
-            else "Pro subscription for video notes")
-    await send_subscription_invoice(ctx.bot, cb.from_user.id, price, title, desc)
+    title = (
+        t(lang, "sub.buy_btn_life", stars=price.stars)
+        if price.lifetime
+        else f"Pro · {price.days} дн."
+        if lang == "ru"
+        else f"Pro · {price.days}d"
+    )
+    desc = "Подписка Pro на видео-кружки" if lang == "ru" else "Pro subscription for video notes"
+    await send_subscription_invoice(
+        ctx.bot, cb.from_user.id, price, title, desc, payments=ctx.payments
+    )
     await cb.answer()
 
 
 @router.pre_checkout_query()
 async def on_pre_checkout(query: PreCheckoutQuery) -> None:
-    await query.answer(ok=True)
+    ctx = get_ctx()
+    data = await validate_payment(
+        ctx.payments, query.invoice_payload, query.from_user.id, query.currency, query.total_amount
+    )
+    if data:
+        await query.answer(ok=True)
+    else:
+        await query.answer(
+            ok=False, error_message=t(ctx.config.default_language, "sub.payment_error")
+        )
 
 
 @router.message(F.successful_payment, private_chat)
@@ -137,27 +161,28 @@ async def on_successful_payment(message: Message) -> None:
         logger.warning("Платёж без данных successful_payment")
         return
 
-    data = parse_payload(sp.invoice_payload)
+    data = await validate_payment(
+        ctx.payments, sp.invoice_payload, user["user_id"], sp.currency, sp.total_amount
+    )
     if not data:
         logger.warning("Неизвестный payload платежа: %s", sp.invoice_payload)
         await message.answer(t(lang, "sub.payment_error"), parse_mode="HTML")
         return
 
     # Идемпотентность по charge_id
-    fresh = await ctx.payments.add(
-        user_id=user["user_id"], charge_id=sp.telegram_payment_charge_id,
-        plan=data["plan"], days=data["days"], stars=data["stars"],
+    fresh, expires = await ctx.payments.record_and_activate(
+        user_id=user["user_id"],
+        charge_id=sp.telegram_payment_charge_id,
+        plan=data["plan"],
+        days=data["days"],
+        stars=data["stars"],
+        lifetime=data["lifetime"],
     )
     if not fresh:
         logger.info("Повторный платёж %s — игнорируем", sp.telegram_payment_charge_id)
         await message.answer(t(lang, "sub.already_paid"), parse_mode="HTML")
         return
 
-    expires = await ctx.subs.activate(
-        user_id=user["user_id"], plan=data["plan"], days=data["days"],
-        source="stars", charge_id=sp.telegram_payment_charge_id,
-        lifetime=data.get("lifetime", False),
-    )
     shown = t(lang, "sub.lifetime") if is_lifetime(expires) else expires[:10]
     await message.answer(
         t(lang, "sub.paid_success", expires=shown),
@@ -166,12 +191,16 @@ async def on_successful_payment(message: Message) -> None:
     )
     logger.info(
         "Оплата Stars: user=%s plan=%s days=%s stars=%s lifetime=%s",
-        user["user_id"], data["plan"], data["days"], data["stars"],
+        user["user_id"],
+        data["plan"],
+        data["days"],
+        data["stars"],
         data.get("lifetime", False),
     )
 
 
 # ===== Проверка подписки по кнопке =====
+
 
 @router.callback_query(F.data == "c:check")
 async def cb_check_membership(cb: CallbackQuery) -> None:

@@ -2,6 +2,7 @@
 Проверки доступа: пользователь, роль, тариф, подписка, членство в канале.
 """
 
+import json
 import logging
 
 from aiogram.types import CallbackQuery, Message
@@ -73,8 +74,18 @@ async def in_maintenance() -> bool:
 
 async def get_invite_url() -> str:
     ctx = get_ctx()
-    url = await ctx.channel_checker.get_chat_invite_link()
-    return url or ctx.channel_checker.get_join_url()
+    link = await ctx.channel.get_link()
+    checker = ctx.channel_checker
+    if checker.channel_link != link:
+        checker.set_link(link)
+    try:
+        saved = json.loads(await ctx.settings.get("channel_invite_link", "{}") or "{}")
+        url = saved.get("url", "") if saved.get("channel") == link else ""
+        checker.set_invite_link(url)
+    except (ValueError, TypeError, AttributeError):
+        checker.set_invite_link(None)
+    public_url = checker.get_join_url()
+    return public_url or await checker.get_chat_invite_link() or ""
 
 
 async def user_lang(user: dict) -> str:

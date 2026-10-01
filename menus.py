@@ -92,11 +92,33 @@ def user_card_menu(lang: str, user_id: int, is_pro: bool) -> InlineKeyboardMarku
 
 
 def settings_menu(lang: str, is_pro: bool) -> InlineKeyboardMarkup:
-    rows = [[_btn(t(lang, "btn.language"), "m:lang")]]
+    rows = [
+        [_btn(t(lang, "btn.language"), "m:lang")],
+        [_btn(t(lang, "video.framing_btn"), "m:framing")],
+        [_btn(t(lang, "video.fragment_btn"), "m:fragment")],
+    ]
     if is_pro:
         rows.append([_btn(t(lang, "btn.quality"), "m:quality")])
     rows.append([_btn(t(lang, "btn.back"), "m:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def framing_menu(lang: str, current: str) -> InlineKeyboardMarkup:
+    rows = []
+    for mode, key in (("crop", "video.mode_crop"), ("fit", "video.mode_fit")):
+        label = t(lang, key)
+        if mode == current:
+            label = f"✅ {label}"
+        rows.append([_btn(label, f"v:mode:{mode}")])
+    rows.append([_btn(t(lang, "btn.back"), "m:settings")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def fragment_menu(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(t(lang, "video.fragment_reset_btn"), "v:fragment:reset")],
+        [_btn(t(lang, "btn.back"), "m:settings")],
+    ])
 
 
 def language_menu(lang: str, current: str) -> InlineKeyboardMarkup:

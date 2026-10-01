@@ -8,31 +8,32 @@ from repositories.base import Base
 from timeutil import now
 
 
+class _Unset:
+    pass
+
+
+_UNSET = _Unset()
+
+
 class UserRepo(Base):
     async def get_or_create(
-        self, user_id: int, username: str | None, first_name: str | None,
-        default_language: str = "ru"
+        self,
+        user_id: int,
+        username: str | None,
+        first_name: str | None,
+        default_language: str = "ru",
     ) -> dict:
         conn = await self._conn()
         try:
+            await conn.execute(
+                "INSERT INTO users (user_id, username, first_name, language) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, "
+                "first_name = excluded.first_name, last_seen = ?",
+                (user_id, username, first_name, default_language, now()),
+            )
             cur = await conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
             row = await cur.fetchone()
-            if row is None:
-                await conn.execute(
-                    "INSERT INTO users (user_id, username, first_name, language) "
-                    "VALUES (?, ?, ?, ?)",
-                    (user_id, username, first_name, default_language),
-                )
-                await conn.commit()
-                cur = await conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
-                row = await cur.fetchone()
-            else:
-                await conn.execute(
-                    "UPDATE users SET username = ?, first_name = ?, last_seen = ? "
-                    "WHERE user_id = ?",
-                    (username, first_name, now(), user_id),
-                )
-                await conn.commit()
+            await conn.commit()
             if row is None:
                 raise RuntimeError("Пользователь не найден сразу после вставки")
             return dict(row)
@@ -53,6 +54,47 @@ class UserRepo(Base):
 
     async def set_quality(self, user_id: int, quality: int | None) -> None:
         await self._set(user_id, "quality", quality)
+
+    async def set_video_options(
+        self,
+        user_id: int,
+        *,
+        crop_mode: str | None = None,
+        trim_start: float | None = None,
+        trim_duration: float | _Unset | None = _UNSET,
+    ) -> None:
+        """Update supplied options; reset_video_fragment clears a selected fragment."""
+        fields: list[str] = []
+        values: list[Any] = []
+        for field, value in (
+            ("crop_mode", crop_mode),
+            ("trim_start", trim_start),
+            ("trim_duration", trim_duration),
+        ):
+            if value is not _UNSET and (value is not None or field == "trim_duration"):
+                fields.append(f"{field} = ?")
+                values.append(value)
+        if not fields:
+            return
+        conn = await self._conn()
+        try:
+            await conn.execute(
+                f"UPDATE users SET {', '.join(fields)} WHERE user_id = ?", (*values, user_id)
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
+
+    async def reset_video_fragment(self, user_id: int) -> None:
+        conn = await self._conn()
+        try:
+            await conn.execute(
+                "UPDATE users SET trim_start = 0, trim_duration = NULL WHERE user_id = ?",
+                (user_id,),
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
 
     async def _set(self, user_id: int, field: str, value: Any) -> None:
         conn = await self._conn()
@@ -87,14 +129,14 @@ class UserRepo(Base):
         q = (query or "").strip().lstrip("@")
         if not q:
             return "", []
-        if q.isdigit():
+        if q.isascii() and q.isdigit():
+            if len(q) > 19 or int(q) > 2**63 - 1:
+                return "WHERE 1 = 0", []
             return "WHERE u.user_id = ?", [int(q)]
         like = f"%{q}%"
         return "WHERE u.username LIKE ? OR u.first_name LIKE ?", [like, like]
 
-    async def search_page(
-        self, offset: int, limit: int, query: str = ""
-    ) -> tuple[list[dict], int]:
+    async def search_page(self, offset: int, limit: int, query: str = "") -> tuple[list[dict], int]:
         """
         Страница пользователей с активным тарифом, без N+1.
 

@@ -19,7 +19,7 @@ channel:
 # Тарифы. free — базовый, pro — платный (покупается за Telegram Stars).
 plans:
   free:
-    max_size_mb: 50          # максимальный размер исходного видео
+    max_size_mb: 20          # облачный Bot API скачивает максимум 20 MB
     max_duration_sec: 60     # максимальная длительность
     resolutions: [360]       # доступные разрешения кружка
     default_resolution: 360
@@ -28,7 +28,7 @@ plans:
     daily_limit: 5           # конвертаций в день (0 = без лимита)
     max_album: 3             # видео в одном сообщении (0 = без лимита)
   pro:
-    max_size_mb: 200
+    max_size_mb: 20          # увеличьте до 200 только с api.local: true
     max_duration_sec: 60
     resolutions: [360, 480, 640]
     default_resolution: 480
@@ -43,6 +43,20 @@ prices:
   - {code: "pro_90d",  plan: "pro", days: 90, stars: 60}
   # lifetime: true — бессрочная подписка (days игнорируется)
   - {code: "pro_life", plan: "pro", days: 0,  stars: 150, lifetime: true}
+
+# Облачный Bot API — по умолчанию. Для больших файлов нужен собственный
+# telegram-bot-api --local и общий каталог файлов по одинаковому абсолютному пути.
+api:
+  base_url: ""              # например http://bot-api:8081
+  local: false
+
+processing:
+  workers: 1                # параллельных задач; для 1 CPU / 512 MB оставьте 1
+  queue_size: 20            # максимальное число ожидающих пачек
+  probe_timeout_sec: 15
+  encode_timeout_sec: 120
+  shutdown_timeout_sec: 30
+  temp_dir: "data/tmp"      # отдельный каталог; путь относительно main.py
 
 logging:
   # DEBUG, INFO, WARNING, ERROR

@@ -3,6 +3,7 @@
 """
 
 import logging
+from html import escape
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -41,7 +42,7 @@ async def _render_stats(lang: str) -> str:
     stars_total = await ctx.payments.total_stars()
 
     top = await ctx.usage.top_formats(ago(days=30), limit=5)
-    top_str = "\n".join(f"• {fmt or '—'}: {cnt}" for fmt, cnt in top) or "—"
+    top_str = "\n".join(f"• {escape(fmt or '—')}: {cnt}" for fmt, cnt in top) or "—"
 
     daily = await ctx.usage.daily_counts(days=7)
     daily_str = "\n".join(f"• {d}: {c}" for d, c in daily) or "—"
@@ -87,16 +88,23 @@ async def _render_tasks(lang: str) -> str:
     if not active:
         text += t(lang, "tasks.none")
     else:
-        for task in active:
-            text += t(
+        for index, task in enumerate(active):
+            line = t(
                 lang, "tasks.active_item",
-                user=task.user_id, name=task.filename[:40],
+                user=task.user_id, name=escape(task.filename[:40]),
                 size=round(task.size / 1024 / 1024, 1), elapsed=ctx.tasks.elapsed(task),
             )
+            if len(text) + len(line) > 2600:
+                text += t(lang, "tasks.more", count=len(active) - index)
+                break
+            text += line
     text += t(lang, "tasks.jobs_title")
     for job in ctx.jobs.jobs:
         last = job.last_run.strftime("%H:%M:%S") if job.last_run else t(lang, "tasks.job_never")
-        text += t(lang, "tasks.job_item", name=job.name, runs=job.runs, last=last)
+        text += t(lang, "tasks.job_item", name=escape(job.name[:80]), runs=job.runs, last=last)
+    queue = getattr(ctx, "conversion_queue", None)
+    if queue is not None and queue.pending():
+        text += t(lang, "tasks.queued", count=queue.pending())
     pending = ctx.albums.pending()
     if pending:
         text += t(lang, "tasks.albums", count=pending)

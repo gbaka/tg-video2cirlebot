@@ -13,6 +13,22 @@ import aiosqlite
 logger = logging.getLogger(__name__)
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS issued_invoices (
+    payload TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    days INTEGER NOT NULL,
+    stars INTEGER NOT NULL,
+    lifetime INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS conversion_cache (
+    cache_key TEXT PRIMARY KEY,
+    file_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
     user_id     INTEGER PRIMARY KEY,
     username    TEXT,
@@ -83,6 +99,13 @@ CREATE INDEX IF NOT EXISTS idx_payments_ts ON payments(ts);
 # Догоняющие миграции: (таблица, колонка, тип).
 # Нужны для баз, созданных более ранними версиями схемы.
 MIGRATIONS = [
+    ("conversion_cache", "source_size", "INTEGER"),
+    ("conversion_cache", "source_duration", "REAL"),
+    ("conversion_cache", "output_duration", "REAL"),
+    ("users", "crop_mode", "TEXT DEFAULT 'crop'"),
+    ("users", "trim_start", "REAL DEFAULT 0"),
+    ("users", "trim_duration", "REAL DEFAULT NULL"),
+    ("payments", "applied_expires", "TEXT"),
     ("subscriptions", "cancelled_at", "TIMESTAMP"),
     ("subscriptions", "cancel_reason", "TEXT"),
 ]
@@ -99,11 +122,22 @@ class Database:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self.db_path) as db:
             await db.executescript(SCHEMA)
+            await db.execute("BEGIN IMMEDIATE")
             await self._migrate(db)
-            # Гарантируем строку настроек канала
+            # Retain longest entitlement, archive overlaps without deleting history.
             await db.execute(
-                "INSERT OR IGNORE INTO channel_settings (id, link) VALUES (1, '')"
+                "UPDATE subscriptions SET active = 0, cancelled_at = CURRENT_TIMESTAMP, "
+                "cancel_reason = 'migration_duplicate' WHERE active = 1 AND id NOT IN ("
+                "SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id "
+                "ORDER BY expires_at DESC, id DESC) AS rank FROM subscriptions WHERE active = 1) "
+                "WHERE rank = 1)"
             )
+            await db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_one_active "
+                "ON subscriptions(user_id) WHERE active = 1"
+            )
+            # Гарантируем строку настроек канала
+            await db.execute("INSERT OR IGNORE INTO channel_settings (id, link) VALUES (1, '')")
             await db.commit()
         logger.info("База данных готова: %s", self.db_path)
 

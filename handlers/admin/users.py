@@ -48,7 +48,7 @@ async def _render_users(
             text += t(
                 lang, "users.item",
                 user_id=u["user_id"],
-                name=escape(u.get("first_name") or u.get("username") or "—"),
+                name=escape((u.get("first_name") or u.get("username") or "—")[:80]),
                 plan=plan,
                 created=(u.get("created_at") or "")[:10],
             )
@@ -126,7 +126,7 @@ async def msg_users_search(message: Message, state: FSMContext) -> None:
         return
     user = await ensure_user(message)
     lang = user["language"]
-    query = (message.text or "").strip()
+    query = (message.text or "").strip()[:100]
     await state.update_data(query=query)
     await state.set_state(None)
     text, markup = await _render_users(lang, 0, query)
@@ -134,11 +134,15 @@ async def msg_users_search(message: Message, state: FSMContext) -> None:
 
 
 @router.message(Command("finduser"), private_chat)
-async def cmd_find_user(message: Message, command: CommandObject) -> None:
+async def cmd_find_user(
+    message: Message, command: CommandObject, state: FSMContext,
+) -> None:
     if not await admin_guard(message):
         return
     user = await ensure_user(message)
     lang = user["language"]
-    query = (command.args or "").strip()
+    query = (command.args or "").strip()[:100]
+    await state.clear()
+    await state.update_data(query=query)
     text, markup = await _render_users(lang, 0, query)
     await message.answer(text, reply_markup=markup, parse_mode="HTML")

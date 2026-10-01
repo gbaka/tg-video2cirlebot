@@ -5,6 +5,7 @@ Telegram доставляет альбом как N отдельных сооб�
 обработать пачку одним заходом, собираем сообщения и запускаем обработку
 через `delay` секунд после последнего сообщения группы.
 """
+
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
@@ -22,6 +23,8 @@ class AlbumBuffer:
         self._max_size = max_size
         self._groups: dict[str, list] = {}
         self._tasks: dict[str, asyncio.Task] = {}
+        self._inflight: set[asyncio.Task] = set()
+        self._closed = False
 
     def add(
         self,
@@ -30,6 +33,8 @@ class AlbumBuffer:
         handler: Callable[[list], Awaitable[None]],
     ) -> None:
         """Добавляет сообщение в группу и (пере)планирует обработку."""
+        if self._closed:
+            raise RuntimeError("album buffer is closed")
         bucket = self._groups.setdefault(group_id, [])
         if len(bucket) < self._max_size:
             bucket.append(message)
@@ -37,7 +42,10 @@ class AlbumBuffer:
         previous = self._tasks.get(group_id)
         if previous and not previous.done():
             previous.cancel()  # дебаунс: ждём тишины в группе
-        self._tasks[group_id] = asyncio.create_task(self._flush(group_id, handler))
+        task = asyncio.create_task(self._flush(group_id, handler))
+        self._tasks[group_id] = task
+        self._inflight.add(task)
+        task.add_done_callback(self._inflight.discard)
 
     async def _flush(self, group_id: str, handler: Callable[[list], Awaitable[None]]) -> None:
         try:
@@ -60,8 +68,20 @@ class AlbumBuffer:
         """Сколько сообщений ждёт обработки (для админ-панели задач)."""
         return sum(len(v) for v in self._groups.values())
 
+    async def shutdown(self, timeout: float = 30) -> None:
+        """Drain debounce and handlers, then cancel and await any deadline stragglers."""
+        self._closed = True
+        tasks = tuple(self._inflight)
+        if tasks:
+            _, pending = await asyncio.wait(tasks, timeout=timeout)
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+        self._groups.clear()
+        self._tasks.clear()
+
     def cancel_all(self) -> None:
-        for task in self._tasks.values():
+        for task in self._inflight:
             task.cancel()
         self._tasks.clear()
         self._groups.clear()
