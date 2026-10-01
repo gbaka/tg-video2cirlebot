@@ -13,7 +13,7 @@ Inline-клавиатуры (меню). Единая точка построен
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from i18n import t
+from i18n import SUPPORTED, lang_name, t
 from plans import PriceOption
 
 
@@ -122,14 +122,15 @@ def fragment_menu(lang: str) -> InlineKeyboardMarkup:
 
 
 def language_menu(lang: str, current: str) -> InlineKeyboardMarkup:
-    def mark(code: str, label: str) -> str:
+    """Список языков из i18n.SUPPORTED: новый язык не требует правок здесь."""
+    def mark(code: str) -> str:
+        label = lang_name(code)
         return f"✅ {label}" if code == current else label
 
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [_btn(mark("ru", "🇷🇺 Русский"), "l:ru")],
-        [_btn(mark("en", "🇬🇧 English"), "l:en")],
-        [_btn(t(lang, "btn.back"), "m:settings")],
-    ])
+    buttons = [_btn(mark(code), f"l:{code}") for code in SUPPORTED]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    rows.append([_btn(t(lang, "btn.back"), "m:settings")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def quality_menu(lang: str, resolutions: list[int], current: int) -> InlineKeyboardMarkup:

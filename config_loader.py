@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 import yaml
 
+from i18n import SUPPORTED
 from plans import Plan, Plans, PriceOption
 
 DEFAULTS: dict[str, Any] = {
@@ -154,8 +155,10 @@ class Config:
             errors.append("bot.admin_ids не заданы в config.yaml (нужен хотя бы один админ)")
         elif any(type(uid) is not int or not 0 < uid < 2**52 for uid in self.bot.admin_ids):
             errors.append("bot.admin_ids: ожидаются положительные целочисленные ID")
-        if self.default_language not in {"ru", "en"}:
-            errors.append("default_language: допустимы ru и en")
+        if self.default_language not in SUPPORTED:
+            errors.append(
+                "default_language: допустимы " + ", ".join(SUPPORTED)
+            )
         if self.logging.level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
             errors.append("logging.level: неизвестный уровень")
         presets = {"ultrafast", "superfast", "veryfast", "faster", "fast", "medium",

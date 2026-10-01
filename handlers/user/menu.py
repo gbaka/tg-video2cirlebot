@@ -23,6 +23,7 @@ from access import (
 from context import get_ctx
 from handlers.user.shared import guard, private_chat, show_main
 from i18n import t
+from plan_copy import tariff_summary
 from tg import cb_message
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ async def cmd_menu(message: Message, state: FSMContext | None = None) -> None:
 
 def _help_text(lang: str, user: dict) -> str:
     """Справка; админские команды показываем только администраторам."""
-    text = t(lang, "help.text")
+    text = t(lang, "help.text") + tariff_summary(lang, get_ctx())
     uid = user.get("user_id")
     if uid is not None and is_admin(uid):
         text += t(lang, "help.admin")

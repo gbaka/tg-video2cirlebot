@@ -17,7 +17,7 @@
   "btn.off": "🔴 Выкл",
   "menu.title": "🎬 <b>Video to Circle Bot</b>\n\nОтправьте видео — я превращу его в кружок (видео-сообщение) Telegram.\n\nВыберите раздел:",
   "info.text": "🎬 <b>Как пользоваться</b>\n\n1. Отправьте видео (файл, видео-сообщение или документ с видео).\n2. Дождитесь конвертации.\n3. Получите готовый кружок.\n\n<b>📋 Форматы:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob и 30+ других.\n\n<b>⚙️ Ограничения Telegram:</b> кружок квадратный, до ~60 секунд, кодеки H.264/AAC.",
-  "help.text": "ℹ️ <b>Помощь</b>\n\n<b>Что делает бот:</b> конвертирует видео в «кружки» Telegram.\n\n<b>Команды:</b>\n/start — главное меню\n/help — эта справка\n/setlanguage — сменить язык\n/fragment — выбрать фрагмент\n/terms — условия\n/paysupport — поддержка по оплате\n\n<b>Тарифы:</b>\n• Free — базовое качество, лимит в день\n• Pro — выше качество, больше лимиты\n\nОткройте «💳 Подписка», чтобы узнать детали.\n\n<b>🔒 Приватность:</b> бот работает только в личных сообщениях.",
+  "help.text": "ℹ️ <b>Помощь</b>\n\n<b>Что делает бот:</b> конвертирует видео в «кружки» Telegram.\n\n<b>Команды:</b>\n/start — главное меню\n/help — эта справка\n/setlanguage — сменить язык\n/fragment — выбрать фрагмент\n/terms — условия\n/paysupport — поддержка по оплате\n\n<b>🔒 Приватность:</b> бот работает только в личных сообщениях.",
   "sub.title": "💳 <b>Подписка</b>",
   "sub.current_free": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: {limit} конвертаций в день\n• Одним сообщением: до {album} видео",
   "sub.current_free_unlimited": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: без ограничений\n• Одним сообщением: до {album} видео",
@@ -166,5 +166,14 @@
   "member.check_ok": "✅ Вы в канале — доступ открыт.",
   "member.check_failed": "❌ Вы ещё не в канале. Нажмите «Вступить» ниже и проверьте снова.",
   "sub.price_gone": "Этот тариф больше недоступен. Откройте раздел «Подписка» заново.",
-  "admin.setting_saved": "✅ Настройка сохранена."
+  "admin.setting_saved": "✅ Настройка сохранена.",
+  "sub.pro_benefits_title": "\n\n<b>⭐ Что даёт Pro</b>",
+  "sub.benefit_quality": "• Качество: до {pro_res}×{pro_res} вместо {free_res}×{free_res}",
+  "sub.benefit_size": "• Файл: до {pro_size} MB вместо {free_size} MB",
+  "sub.benefit_limit": "• Без дневного лимита (на Free — {free_limit} конвертаций в день)",
+  "sub.benefit_limit_number": "• До {pro_limit} конвертаций в день вместо {free_limit}",
+  "sub.benefit_album": "• До {pro_album} видео одним сообщением вместо {free_album}",
+  "sub.benefit_album_unlimited": "• Без ограничения на число видео в одном сообщении",
+  "sub.limit_none": "без ограничений",
+  "help.tariffs": "\n\n<b>Тарифы:</b>\n• Free — до {free_res}×{free_res}, файл до {free_size} MB, лимит: {free_limit}\n• ⭐ Pro — до {pro_res}×{pro_res}, файл до {pro_size} MB, лимит: {pro_limit}\n\nРазбор отличий — в разделе «💳 Подписка»."
 }

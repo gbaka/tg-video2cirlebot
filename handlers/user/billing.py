@@ -22,6 +22,7 @@ from context import get_ctx
 from handlers.user.shared import private_chat, show_main
 from i18n import t
 from payments import send_subscription_invoice, validate_payment
+from plan_copy import pro_benefits
 from repositories import is_lifetime
 from tg import cb_data, cb_message
 
@@ -59,6 +60,9 @@ async def cb_subscription(cb: CallbackQuery) -> None:
             limit=free.daily_limit,
             album=free.max_album,
         )
+
+    if plan.code != "pro":
+        text += pro_benefits(lang, ctx)
 
     if ctx.plans.prices:
         text += t(lang, "sub.buy_title")

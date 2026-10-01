@@ -1,7 +1,8 @@
 """
 Простая i18n: словари в locales/<lang>.json, функция t(lang, key, **kwargs).
 
-Поддерживаемые языки: ru, en. Формат значений — HTML (parse_mode=HTML).
+Список языков задаётся LANG_NAMES: добавить язык = добавить здесь название и
+положить locales/<код>.json с тем же набором ключей. Формат значений — HTML.
 """
 
 import json
@@ -11,7 +12,13 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 DEFAULT_LANG = "ru"
-SUPPORTED = ("ru", "en")
+
+# код → подпись в меню выбора языка. Порядок = порядок кнопок.
+LANG_NAMES: dict[str, str] = {
+    "ru": "🇷🇺 Русский",
+    "en": "🇬🇧 English",
+}
+SUPPORTED = tuple(LANG_NAMES)
 
 _locales: dict[str, dict] = {}
 
@@ -51,4 +58,4 @@ def t(lang: str, key: str, /, **kwargs) -> str:
 
 
 def lang_name(lang: str) -> str:
-    return {"ru": "🇷🇺 Русский", "en": "🇬🇧 English"}.get(lang, lang)
+    return LANG_NAMES.get(lang, lang)
