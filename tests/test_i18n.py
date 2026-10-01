@@ -62,8 +62,12 @@ def test_keys_used_in_code_exist() -> None:
 
 def test_no_dead_keys() -> None:
     """Каждый ключ локали должен встречаться в коде как строковый литерал."""
+    from command_hints import ADMIN_COMMANDS
+
     source = _source_text()
     literals = set(re.findall(r'"([a-z][a-z0-9_.]+)"', source))
+    # Описания команд собираются как f"cmd.{имя}" из списков, а не литералами.
+    literals |= {f"cmd.{name}" for name in ADMIN_COMMANDS}
     dead = sorted(set(_locales()["ru"]) - literals)
     assert not dead, f"неиспользуемые ключи: {dead}"
 

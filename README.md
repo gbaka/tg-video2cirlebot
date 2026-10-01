@@ -152,42 +152,46 @@ logging:
 | `/setchannel <ID/ссылка> [invite]` | админ | Установить канал и приглашение для приватного канала |
 | `/channel` | админ | Показать текущий канал |
 | `/clearchannel` | админ | Отключить проверку подписки |
+| `/syncmenu` | админ | Переопубликовать подсказки команд в меню Telegram |
 
-### Подсказки команд только для администраторов
+### Подсказки команд и scope
 
-Список команд в клиенте Telegram задаётся через Bot API, а не в коде бота.
-В BotFather `/setcommands` пишет список для **всего** бота: админские команды в нём
-увидят все пользователи. Права они не дают (их проверяет `admin_guard`), но и
-подсказывать их посторонним незачем. У настройки есть scope — и один из вариантов
-(`BotCommandScopeChat`) задаёт список для **конкретного чата**:
+Список команд в меню «/» хранится на серверах Telegram и задаётся через Bot API.
+В BotFather `/setcommands` пишет только **default**-scope: админские команды в нём
+увидят все пользователи, а персональный список так не задать вообще. Поэтому списки
+публикует сам бот при старте — `command_hints.py`, функция `publish_command_hints`.
 
-- `BotCommandScopeDefault` — базовый список, если для чата не задано иного;
-- `BotCommandScopeAllPrivateChats` — все личные чаты;
-- `BotCommandScopeChat(chat_id=...)` — один чат; личный чат с ботом имеет тот же
-  ID, что и пользователь, поэтому это фактически «подсказки для одного пользователя»;
-- `BotCommandScopeChatMember` / `ChatAdministrators` / `AllChatAdministrators` —
-  только для групповых администраторов; в личных чатах Bot API такие scope
-  отклоняет (`can't use specified scope in private chats`).
+Telegram выбирает список по самому конкретному совпадению:
 
-Список для конкретного чата переопределяет базовый, поэтому админу достаточно
-выставить свой scope один раз (и повторять при смене `bot.admin_ids`):
+    chat+язык → chat → all_private_chats+язык → all_private_chats → default+язык → default
 
-```python
-from aiogram.types import BotCommand, BotCommandScopeChat
+Список для конкретного чата переопределяет базовый, а личный чат с ботом имеет тот же
+ID, что и пользователь, — поэтому `BotCommandScopeChat(chat_id=<admin_id>)` работает
+как персональные подсказки для администратора. Что публикуется:
 
-USER_COMMANDS = [BotCommand(command="start", description="Главное меню")]
-ADMIN_COMMANDS = USER_COMMANDS + [BotCommand(command="stats", description="Статистика")]
+| Scope | Содержимое | Зачем |
+|-------|-----------|-------|
+| `default` и `all_private_chats` | `USER_COMMANDS` | базовый список для всех |
+| `BotCommandScopeChat(admin_id)` | `ADMIN_COMMANDS` | расширенный список каждому админу |
 
-async def publish_command_hints(bot, admin_ids):
-    await bot.set_my_commands(USER_COMMANDS)  # базовый: виден всем
-    for admin_id in admin_ids:
-        await bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=admin_id))
-```
+Публикуются три варианта каждого списка: без `language_code` (запасной для прочих
+языков) и отдельно `ru` / `en`. `default` заполняется вместе с `all_private_chats`,
+иначе оставшийся от ручных настроек `all_private_chats` перекрыл бы `default+ru`.
+Описания берутся из локалей (`cmd.<имя>`), а `tests/test_command_hints.py` сверяет
+списки с реально зарегистрированными `Command(...)` — забытая в списке или лишняя
+в нём команда валит тест.
 
 Ограничения: `setMyCommands` требует, чтобы бот уже имел этот чат (админ запускал
-бота), иначе `chat not found`; удалять такие списки нужно тоже явно — `deleteMyCommands`
-без scope чистит только базовый. Кэш клиента Telegram может показывать старый список
+бота), иначе `chat not found` — такой админ просто пропускается с предупреждением
+в логе, остальные публикуются; удалять такие списки нужно явно, `deleteMyCommands`
+без scope чистит только базовый; клиент Telegram кэширует меню и показывает старое
 до перезапуска приложения.
+
+Ошибка публикации не мешает запуску бота. Если `bot.admin_ids` менялся или админ не
+был доступен в момент старта, список обновляется командой `/syncmenu` — она повторяет
+публикацию и сообщает, кому применить не удалось. Поскольку BotFather и код пишут в
+одно и то же хранилище, меню лучше держать в одном владельце: если списки публикует
+бот, в `/setcommands` заходить не нужно — иначе последняя запись затирает предыдущую.
 
 ### Форматы ссылок на канал/чат
 

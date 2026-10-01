@@ -17,6 +17,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 import context as ctx_module
 from channel_checker import ChannelChecker
+from command_hints import publish_command_hints
 from config_loader import Config
 from context import AppContext
 from conversion_queue import ConversionQueue
@@ -192,6 +193,13 @@ async def run_bot(config: Config, bot: Bot) -> int:
         dp.update.outer_middleware(ctx.requests)
         me = await bot.get_me()
         logger.info("Бот @%s запущен", me.username)
+        try:
+            failed = await publish_command_hints(bot, config.bot.admin_ids)
+        except Exception:  # подсказки не должны мешать запуску
+            logger.exception("Публикация подсказок команд не удалась")
+        else:
+            if failed:
+                logger.warning("Подсказки команд применены не полностью: %s", failed)
         await job_heartbeat()
         await ctx.jobs.start()
         await dp.start_polling(

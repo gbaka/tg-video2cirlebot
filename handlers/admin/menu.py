@@ -3,6 +3,7 @@
 """
 
 import logging
+from html import escape
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -10,6 +11,8 @@ from aiogram.types import CallbackQuery, Message
 
 import menus
 from access import ensure_user
+from command_hints import publish_command_hints
+from context import get_ctx
 from handlers.admin.shared import (
     admin_guard,
     private_chat,
@@ -41,3 +44,21 @@ async def cmd_admin(message: Message) -> None:
     await message.answer(
         t(lang, "admin.title"), reply_markup=menus.admin_menu(lang), parse_mode="HTML"
     )
+
+
+@router.message(Command("syncmenu"), private_chat)
+async def cmd_syncmenu(message: Message) -> None:
+    """Обновляет меню «/», если admin_ids менялись или админ не был доступен."""
+    if not await admin_guard(message):
+        return
+    user = await ensure_user(message)
+    lang = user["language"]
+    ctx = get_ctx()
+    failed = await publish_command_hints(ctx.bot, ctx.config.bot.admin_ids)
+    if failed:
+        await message.answer(
+            t(lang, "admin.syncmenu_partial", failed=escape("; ".join(failed))),
+            parse_mode="HTML",
+        )
+        return
+    await message.answer(t(lang, "admin.syncmenu_ok"), parse_mode="HTML")
