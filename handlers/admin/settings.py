@@ -63,4 +63,4 @@ async def cb_toggle_setting(cb: CallbackQuery) -> None:
     await cb_message(cb).edit_text(
         text, reply_markup=menus.bot_settings_menu(lang, maint, memb), parse_mode="HTML"
     )
-    await cb.answer("✅")
+    await cb.answer(t(lang, "admin.setting_saved"))

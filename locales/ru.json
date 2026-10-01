@@ -162,5 +162,9 @@
   "cmd.supportreply": "Ответить на обращение: /supportreply <ID> <текст>",
   "cmd.syncmenu": "Обновить подсказки команд в меню Telegram",
   "admin.syncmenu_ok": "✅ Подсказки команд обновлены.",
-  "admin.syncmenu_partial": "⚠️ Обновлено частично. Не удалось: {failed}"
+  "admin.syncmenu_partial": "⚠️ Обновлено частично. Не удалось: {failed}",
+  "member.check_ok": "✅ Вы в канале — доступ открыт.",
+  "member.check_failed": "❌ Вы ещё не в канале. Нажмите «Вступить» ниже и проверьте снова.",
+  "sub.price_gone": "Этот тариф больше недоступен. Откройте раздел «Подписка» заново.",
+  "admin.setting_saved": "✅ Настройка сохранена."
 }

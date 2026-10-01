@@ -121,7 +121,7 @@ async def cb_buy(cb: CallbackQuery) -> None:
     code = cb_data(cb).split(":", 1)[1]
     price = ctx.plans.price(code)
     if not price:
-        await cb.answer("N/A", show_alert=True)
+        await cb.answer(t(lang, "sub.price_gone"), show_alert=True)
         return
     title = (
         t(lang, "sub.buy_btn_life", stars=price.stars)
@@ -205,8 +205,9 @@ async def on_successful_payment(message: Message) -> None:
 @router.callback_query(F.data == "c:check")
 async def cb_check_membership(cb: CallbackQuery) -> None:
     user = await ensure_user(cb)
+    lang = user["language"]
     if is_admin(user["user_id"]) or await membership_ok(user["user_id"]):
-        await cb.answer("✅")
+        await cb.answer(t(lang, "member.check_ok"))
         await show_main(cb, user)
     else:
-        await cb.answer("❌", show_alert=True)
+        await cb.answer(t(lang, "member.check_failed"), show_alert=True)

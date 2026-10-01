@@ -162,5 +162,9 @@
   "cmd.supportreply": "Reply to a support request: /supportreply <ID> <text>",
   "cmd.syncmenu": "Refresh the command hints in the Telegram menu",
   "admin.syncmenu_ok": "✅ Command hints updated.",
-  "admin.syncmenu_partial": "⚠️ Partially updated. Failed: {failed}"
+  "admin.syncmenu_partial": "⚠️ Partially updated. Failed: {failed}",
+  "member.check_ok": "✅ You are in the channel — access is open.",
+  "member.check_failed": "❌ You are not in the channel yet. Tap «Join» below and check again.",
+  "sub.price_gone": "This plan is no longer available. Open the Subscription section again.",
+  "admin.setting_saved": "✅ Setting saved."
 }
