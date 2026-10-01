@@ -22,7 +22,7 @@ from context import get_ctx
 from handlers.user.shared import private_chat, show_main
 from i18n import t
 from payments import send_subscription_invoice, validate_payment
-from plan_copy import pro_benefits
+from plan_copy import pro_benefits, size_text
 from repositories import is_lifetime
 from tg import cb_data, cb_message
 
@@ -48,7 +48,7 @@ async def cb_subscription(cb: CallbackQuery) -> None:
             lang,
             "sub.current_pro",
             maxres=max(pro.resolutions),
-            size=ctx.config.api.input_limit_bytes(pro.max_size_bytes) // (1024 * 1024),
+            size=size_text(lang, ctx, pro),
             expires=expires,
         )
     else:
@@ -56,7 +56,7 @@ async def cb_subscription(cb: CallbackQuery) -> None:
             lang,
             "sub.current_free" if not free.is_unlimited() else "sub.current_free_unlimited",
             res=free.default_resolution,
-            size=ctx.config.api.input_limit_bytes(free.max_size_bytes) // (1024 * 1024),
+            size=size_text(lang, ctx, free),
             limit=free.daily_limit,
             album=free.max_album,
         )

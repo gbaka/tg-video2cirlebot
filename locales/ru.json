@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Как пользоваться</b>\n\n1. Отправьте видео (файл, видео-сообщение или документ с видео).\n2. Дождитесь конвертации.\n3. Получите готовый кружок.\n\n<b>📋 Форматы:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob и 30+ других.\n\n<b>⚙️ Ограничения Telegram:</b> кружок квадратный, до ~60 секунд, кодеки H.264/AAC.",
   "help.text": "ℹ️ <b>Помощь</b>\n\n<b>Что делает бот:</b> конвертирует видео в «кружки» Telegram.\n\n<b>Команды:</b>\n/start — главное меню\n/help — эта справка\n/setlanguage — сменить язык\n/fragment — выбрать фрагмент\n/terms — условия\n/paysupport — поддержка по оплате\n\n<b>🔒 Приватность:</b> бот работает только в личных сообщениях.",
   "sub.title": "💳 <b>Подписка</b>",
-  "sub.current_free": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: {limit} конвертаций в день\n• Одним сообщением: до {album} видео",
-  "sub.current_free_unlimited": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size} MB\n• Лимит: без ограничений\n• Одним сообщением: до {album} видео",
-  "sub.current_pro": "\n\n<b>Ваш тариф:</b> ⭐ Pro\n• Качество: до {maxres}×{maxres} (на выбор)\n• Макс. файл: {size} MB\n• Лимит: без ограничений\n• Одним сообщением: без ограничений\n• Действует: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size}\n• Лимит: {limit} конвертаций в день\n• Одним сообщением: до {album} видео",
+  "sub.current_free_unlimited": "\n\n<b>Ваш тариф:</b> Free\n• Качество: до {res}×{res}\n• Макс. файл: {size}\n• Лимит: без ограничений\n• Одним сообщением: до {album} видео",
+  "sub.current_pro": "\n\n<b>Ваш тариф:</b> ⭐ Pro\n• Качество: до {maxres}×{maxres} (на выбор)\n• Макс. файл: {size}\n• Лимит: без ограничений\n• Одним сообщением: без ограничений\n• Действует: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Оформить/продлить Pro:</b>",
   "sub.buy_btn": "Pro · {days} дн. · {stars} ⭐",
   "sub.no_prices": "\n\nПокупка временно недоступна.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Конвертирую в кружок…",
   "conv.uploading": "📤 Отправляю кружок…",
   "conv.too_big": "❌ Файл слишком большой: {size} MB.\nЛимит вашего тарифа: {limit} MB.",
+  "conv.too_big_api": "❌ Файл слишком большой: {size} MB.\nTelegram Bot API отдаёт боту файлы не больше {limit} MB.",
   "conv.too_long": "❌ Видео слишком длинное: {duration} с.\nЛимит вашего тарифа: {limit} с.",
   "conv.unsupported": "❌ Неподдерживаемый формат: {ext}",
   "conv.daily_limit": "❌ Достигнут дневной лимит конвертаций ({limit}).\n\nОформите ⭐ Pro для безлимита или попробуйте завтра.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Что даёт Pro</b>",
   "sub.benefit_quality": "• Качество: до {pro_res}×{pro_res} вместо {free_res}×{free_res}",
   "sub.benefit_size": "• Файл: до {pro_size} MB вместо {free_size} MB",
+  "sub.benefit_size_unlimited": "• Файл: без ограничения (на Free — до {free_size} MB)",
   "sub.benefit_limit": "• Без дневного лимита (на Free — {free_limit} конвертаций в день)",
   "sub.benefit_limit_number": "• До {pro_limit} конвертаций в день вместо {free_limit}",
   "sub.benefit_album": "• До {pro_album} видео одним сообщением вместо {free_album}",
   "sub.benefit_album_unlimited": "• Без ограничения на число видео в одном сообщении",
   "sub.limit_none": "без ограничений",
-  "help.tariffs": "\n\n<b>Тарифы:</b>\n• Free — до {free_res}×{free_res}, файл до {free_size} MB, лимит: {free_limit}\n• ⭐ Pro — до {pro_res}×{pro_res}, файл до {pro_size} MB, лимит: {pro_limit}\n\nРазбор отличий — в разделе «💳 Подписка»."
+  "help.tariffs": "\n\n<b>Тарифы:</b>\n• Free — до {free_res}×{free_res}, файл: {free_size}, лимит: {free_limit}\n• ⭐ Pro — до {pro_res}×{pro_res}, файл: {pro_size}, лимит: {pro_limit}\n\nРазбор отличий — в разделе «💳 Подписка»."
 }

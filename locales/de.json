@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Bedienung</b>\n\n1. Senden Sie ein Video (Datei, Video-Nachricht oder Dokument mit Video).\n2. Warten Sie die Konvertierung ab.\n3. Erhalten Sie den fertigen Kreis.\n\n<b>📋 Formate:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob und 30+ weitere.\n\n<b>⚙️ Telegram-Limits:</b> Der Kreis ist quadratisch, bis ~60 Sekunden, Codecs H.264/AAC.",
   "help.text": "ℹ️ <b>Hilfe</b>\n\n<b>Was der Bot macht:</b> Er wandelt Videos in Telegram-„Kreise“ um.\n\n<b>Befehle:</b>\n/start — Hauptmenü\n/help — diese Hilfe\n/setlanguage — Sprache ändern\n/fragment — Abschnitt wählen\n/terms — Nutzungsbedingungen\n/paysupport — Zahlungssupport\n\n<b>🔒 Privatsphäre:</b> Der Bot arbeitet nur in Direktnachrichten.",
   "sub.title": "💳 <b>Abo</b>",
-  "sub.current_free": "\n\n<b>Ihr Tarif:</b> Free\n• Qualität: bis {res}×{res}\n• Max. Datei: {size} MB\n• Limit: {limit} Konvertierungen pro Tag\n• Pro Nachricht: bis {album} Videos",
-  "sub.current_free_unlimited": "\n\n<b>Ihr Tarif:</b> Free\n• Qualität: bis {res}×{res}\n• Max. Datei: {size} MB\n• Limit: ohne Einschränkungen\n• Pro Nachricht: bis {album} Videos",
-  "sub.current_pro": "\n\n<b>Ihr Tarif:</b> ⭐ Pro\n• Qualität: bis {maxres}×{maxres} (wählbar)\n• Max. Datei: {size} MB\n• Limit: ohne Einschränkungen\n• Pro Nachricht: ohne Einschränkungen\n• Gültig bis: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Ihr Tarif:</b> Free\n• Qualität: bis {res}×{res}\n• Max. Datei: {size}\n• Limit: {limit} Konvertierungen pro Tag\n• Pro Nachricht: bis {album} Videos",
+  "sub.current_free_unlimited": "\n\n<b>Ihr Tarif:</b> Free\n• Qualität: bis {res}×{res}\n• Max. Datei: {size}\n• Limit: ohne Einschränkungen\n• Pro Nachricht: bis {album} Videos",
+  "sub.current_pro": "\n\n<b>Ihr Tarif:</b> ⭐ Pro\n• Qualität: bis {maxres}×{maxres} (wählbar)\n• Max. Datei: {size}\n• Limit: ohne Einschränkungen\n• Pro Nachricht: ohne Einschränkungen\n• Gültig bis: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Pro aktivieren/verlängern:</b>",
   "sub.buy_btn": "Pro · {days} Tage · {stars} ⭐",
   "sub.no_prices": "\n\nKauf derzeit nicht verfügbar.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Wird in einen Kreis umgewandelt…",
   "conv.uploading": "📤 Kreis wird gesendet…",
   "conv.too_big": "❌ Datei zu groß: {size} MB.\nLimit Ihres Tarifs: {limit} MB.",
+  "conv.too_big_api": "❌ Datei zu groß: {size} MB.\nDie Telegram Bot API übermittelt dem Bot Dateien von höchstens {limit} MB.",
   "conv.too_long": "❌ Video zu lang: {duration} s.\nLimit Ihres Tarifs: {limit} s.",
   "conv.unsupported": "❌ Nicht unterstütztes Format: {ext}",
   "conv.daily_limit": "❌ Tageslimit für Konvertierungen erreicht ({limit}).\n\nHolen Sie sich ⭐ Pro für unbegrenzt, oder versuchen Sie es morgen.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Was Pro bietet</b>",
   "sub.benefit_quality": "• Qualität: bis {pro_res}×{pro_res} statt {free_res}×{free_res}",
   "sub.benefit_size": "• Datei: bis {pro_size} MB statt {free_size} MB",
+  "sub.benefit_size_unlimited": "• Datei: ohne Einschränkung (auf Free — bis {free_size} MB)",
   "sub.benefit_limit": "• Kein Tageslimit (bei Free — {free_limit} Konvertierungen pro Tag)",
   "sub.benefit_limit_number": "• Bis {pro_limit} Konvertierungen pro Tag statt {free_limit}",
   "sub.benefit_album": "• Bis {pro_album} Videos pro Nachricht statt {free_album}",
   "sub.benefit_album_unlimited": "• Keine Begrenzung der Videoanzahl pro Nachricht",
   "sub.limit_none": "ohne Einschränkungen",
-  "help.tariffs": "\n\n<b>Tarife:</b>\n• Free — bis {free_res}×{free_res}, Datei bis {free_size} MB, Limit: {free_limit}\n• ⭐ Pro — bis {pro_res}×{pro_res}, Datei bis {pro_size} MB, Limit: {pro_limit}\n\nDie Unterschiede finden Sie im Bereich „💳 Abo“."
+  "help.tariffs": "\n\n<b>Tarife:</b>\n• Free — bis {free_res}×{free_res}, Datei: {free_size}, Limit: {free_limit}\n• ⭐ Pro — bis {pro_res}×{pro_res}, Datei: {pro_size}, Limit: {pro_limit}\n\nDie Unterschiede finden Sie im Bereich „💳 Abo“."
 }

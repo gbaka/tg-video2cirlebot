@@ -22,6 +22,7 @@ from aiogram.types import FSInputFile, InlineKeyboardMarkup, Message
 from context import AppContext
 from conversion_queue import QueueFull
 from i18n import t
+from plan_copy import limit_bytes, size_limit_key
 from plans import Plan
 from repositories.conversion_cache import make_cache_key
 from tempfiles import TempFiles
@@ -151,8 +152,7 @@ async def convert_one(
             "trim_duration": trim_duration,
         }
         cache_key = make_cache_key(unique_id, **options) if cache and unique_id else None
-        api = getattr(ctx.config, "api", None)
-        limit = api.input_limit_bytes(plan.max_size_bytes) if api else plan.max_size_bytes
+        limit = limit_bytes(ctx, plan)
         selected = options["trim_duration"]
         if selected is not None and float(selected) > plan.max_duration_sec:
             await msg.answer(
@@ -169,7 +169,7 @@ async def convert_one(
                     await msg.answer(
                         t(
                             lang,
-                            "conv.too_big",
+                            size_limit_key(ctx, plan),
                             size=round(int(cached["source_size"]) / 1024 / 1024, 1),
                             limit=limit / 1024 / 1024,
                         )
@@ -208,14 +208,13 @@ async def convert_one(
             await asyncio.wait_for(
                 ctx.bot.download(file_id, destination=input_path), timeout=encode_timeout
             )
-            api = getattr(ctx.config, "api", None)
-            limit = api.input_limit_bytes(plan.max_size_bytes) if api else plan.max_size_bytes
+            limit = limit_bytes(ctx, plan)
             actual_size = Path(input_path).stat().st_size
             if limit and actual_size > limit:
                 await msg.answer(
                     t(
                         lang,
-                        "conv.too_big",
+                        size_limit_key(ctx, plan),
                         size=round(actual_size / 1024 / 1024, 1),
                         limit=limit / 1024 / 1024,
                     )
@@ -395,14 +394,13 @@ async def process_batch_locked(
     # Предварительная проверка — все проблемы показываем одним сообщением
     valid: list[Item] = []
     problems: list[str] = []
-    api = getattr(ctx.config, "api", None)
-    input_limit = api.input_limit_bytes(plan.max_size_bytes) if api else plan.max_size_bytes
+    input_limit = limit_bytes(ctx, plan)
     for msg, (file_id, file_name, file_size) in pairs:
         if input_limit and file_size > input_limit:
             problems.append(
                 t(
                     lang,
-                    "conv.too_big",
+                    size_limit_key(ctx, plan),
                     size=round(file_size / 1024 / 1024, 1),
                     limit=input_limit // 1024 // 1024,
                 )

@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>How to use</b>\n\n1. Send a video (file, video note or video document).\n2. Wait for the conversion.\n3. Get your circle.\n\n<b>📋 Formats:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob and 30+ more.\n\n<b>⚙️ Telegram limits:</b> the note is square, up to ~60 seconds, H.264/AAC codecs.",
   "help.text": "ℹ️ <b>Help</b>\n\n<b>What the bot does:</b> converts videos into Telegram video notes.\n\n<b>Commands:</b>\n/start — main menu\n/help — this help\n/setlanguage — change language\n/fragment — select a fragment\n/terms — terms\n/paysupport — payment support\n\n<b>🔒 Privacy:</b> the bot works in private chats only.",
   "sub.title": "💳 <b>Subscription</b>",
-  "sub.current_free": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: {limit} conversions per day\n• Per message: up to {album} videos",
-  "sub.current_free_unlimited": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size} MB\n• Limit: unlimited\n• Per message: up to {album} videos",
-  "sub.current_pro": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size} MB\n• Limit: unlimited\n• Per message: unlimited\n• Valid: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size}\n• Limit: {limit} conversions per day\n• Per message: up to {album} videos",
+  "sub.current_free_unlimited": "\n\n<b>Your plan:</b> Free\n• Quality: up to {res}×{res}\n• Max file: {size}\n• Limit: unlimited\n• Per message: up to {album} videos",
+  "sub.current_pro": "\n\n<b>Your plan:</b> ⭐ Pro\n• Quality: up to {maxres}×{maxres} (selectable)\n• Max file: {size}\n• Limit: unlimited\n• Per message: unlimited\n• Valid: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Get / extend Pro:</b>",
   "sub.buy_btn": "Pro · {days}d · {stars} ⭐",
   "sub.no_prices": "\n\nPurchases are temporarily unavailable.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Converting to a circle…",
   "conv.uploading": "📤 Uploading the circle…",
   "conv.too_big": "❌ File is too large: {size} MB.\nYour plan limit: {limit} MB.",
+  "conv.too_big_api": "❌ File is too large: {size} MB.\nThe Telegram Bot API won't hand the bot files over {limit} MB.",
   "conv.too_long": "❌ Video is too long: {duration}s.\nYour plan limit: {limit}s.",
   "conv.unsupported": "❌ Unsupported format: {ext}",
   "conv.daily_limit": "❌ Daily conversion limit reached ({limit}).\n\nGet ⭐ Pro for unlimited, or try again tomorrow.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ What Pro gives you</b>",
   "sub.benefit_quality": "• Quality up to {pro_res}×{pro_res} instead of {free_res}×{free_res}",
   "sub.benefit_size": "• Files up to {pro_size} MB instead of {free_size} MB",
+  "sub.benefit_size_unlimited": "• Files: no size limit (Free allows up to {free_size} MB)",
   "sub.benefit_limit": "• No daily cap (Free allows {free_limit} conversions a day)",
   "sub.benefit_limit_number": "• Up to {pro_limit} conversions a day instead of {free_limit}",
   "sub.benefit_album": "• Up to {pro_album} videos in one message instead of {free_album}",
   "sub.benefit_album_unlimited": "• No limit on videos per message",
   "sub.limit_none": "unlimited",
-  "help.tariffs": "\n\n<b>Plans:</b>\n• Free — up to {free_res}×{free_res}, files up to {free_size} MB, limit: {free_limit}\n• ⭐ Pro — up to {pro_res}×{pro_res}, files up to {pro_size} MB, limit: {pro_limit}\n\nSee the “💳 Subscription” section for the full comparison."
+  "help.tariffs": "\n\n<b>Plans:</b>\n• Free — up to {free_res}×{free_res}, file: {free_size}, limit: {free_limit}\n• ⭐ Pro — up to {pro_res}×{pro_res}, file: {pro_size}, limit: {pro_limit}\n\nSee the “💳 Subscription” section for the full comparison."
 }

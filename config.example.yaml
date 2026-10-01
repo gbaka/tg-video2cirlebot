@@ -20,7 +20,7 @@ channel:
 # Тарифы. free — базовый, pro — платный (покупается за Telegram Stars).
 plans:
   free:
-    max_size_mb: 20          # облачный Bot API скачивает максимум 20 MB
+    max_size_mb: 15          # максимальный размер исходного видео, MB (0 = без лимита)
     max_duration_sec: 60     # максимальная длительность
     resolutions: [360]       # доступные разрешения кружка
     default_resolution: 360
@@ -29,7 +29,7 @@ plans:
     daily_limit: 5           # конвертаций в день (0 = без лимита)
     max_album: 3             # видео в одном сообщении (0 = без лимита)
   pro:
-    max_size_mb: 20          # увеличьте до 200 только с api.local: true
+    max_size_mb: 0           # 0 = без ограничения: потолок задаёт сам Bot API (20 MB в облаке)
     max_duration_sec: 60
     resolutions: [360, 480, 640]
     default_resolution: 480

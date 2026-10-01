@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Qanday foydalaniladi</b>\n\n1. Video yuboring (fayl, video-xabar yoki video tarkibli hujjat).\n2. Konvertatsiya tugashini kuting.\n3. Tayyor dumaloqni oling.\n\n<b>📋 Formatlar:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob va yana 30+ ta.\n\n<b>⚙️ Telegram cheklovlari:</b> dumaloq kvadrat shaklda, ~60 sekundgacha, H.264/AAC kodeklari.",
   "help.text": "ℹ️ <b>Yordam</b>\n\n<b>Bot nima qiladi:</b> videoni Telegram «dumaloqlariga» aylantiradi.\n\n<b>Buyruqlar:</b>\n/start — asosiy menyu\n/help — ushbu ma'lumot\n/setlanguage — tilni o'zgartirish\n/fragment — fragment tanlash\n/terms — shartlar\n/paysupport — to'lov bo'yicha yordam\n\n<b>🔒 Maxfiylik:</b> bot faqat shaxsiy xabarlarda ishlaydi.",
   "sub.title": "💳 <b>Obuna</b>",
-  "sub.current_free": "\n\n<b>Sizning tarifingiz:</b> Free\n• Sifat: {res}×{res} gacha\n• Maks. fayl: {size} MB\n• Limit: kuniga {limit} ta konvertatsiya\n• Bitta xabarda: {album} tagacha video",
-  "sub.current_free_unlimited": "\n\n<b>Sizning tarifingiz:</b> Free\n• Sifat: {res}×{res} gacha\n• Maks. fayl: {size} MB\n• Limit: cheklovsiz\n• Bitta xabarda: {album} tagacha video",
-  "sub.current_pro": "\n\n<b>Sizning tarifingiz:</b> ⭐ Pro\n• Sifat: {maxres}×{maxres} gacha (tanlov bilan)\n• Maks. fayl: {size} MB\n• Limit: cheklovsiz\n• Bitta xabarda: cheklovsiz\n• Amal qiladi: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Sizning tarifingiz:</b> Free\n• Sifat: {res}×{res} gacha\n• Maks. fayl: {size}\n• Limit: kuniga {limit} ta konvertatsiya\n• Bitta xabarda: {album} tagacha video",
+  "sub.current_free_unlimited": "\n\n<b>Sizning tarifingiz:</b> Free\n• Sifat: {res}×{res} gacha\n• Maks. fayl: {size}\n• Limit: cheklovsiz\n• Bitta xabarda: {album} tagacha video",
+  "sub.current_pro": "\n\n<b>Sizning tarifingiz:</b> ⭐ Pro\n• Sifat: {maxres}×{maxres} gacha (tanlov bilan)\n• Maks. fayl: {size}\n• Limit: cheklovsiz\n• Bitta xabarda: cheklovsiz\n• Amal qiladi: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Pro olish/uzaytirish:</b>",
   "sub.buy_btn": "Pro · {days} kun · {stars} ⭐",
   "sub.no_prices": "\n\nXarid vaqtincha mavjud emas.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Dumaloqqa aylantirilmoqda…",
   "conv.uploading": "📤 Dumaloq yuborilmoqda…",
   "conv.too_big": "❌ Fayl juda katta: {size} MB.\nTarifingiz limiti: {limit} MB.",
+  "conv.too_big_api": "❌ Fayl juda katta: {size} MB.\nTelegram Bot API botga {limit} MB dan katta bo'lmagan fayllarni beradi.",
   "conv.too_long": "❌ Video juda uzun: {duration} s.\nTarifingiz limiti: {limit} s.",
   "conv.unsupported": "❌ Qo'llab-quvvatlanmaydigan format: {ext}",
   "conv.daily_limit": "❌ Kunlik konvertatsiya limiti tugadi ({limit}).\n\nCheksizlik uchun ⭐ Pro oling yoki ertaga urinib ko'ring.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Pro nima beradi</b>",
   "sub.benefit_quality": "• Sifat: {free_res}×{free_res} o'rniga {pro_res}×{pro_res} gacha",
   "sub.benefit_size": "• Fayl: {free_size} MB o'rniga {pro_size} MB gacha",
+  "sub.benefit_size_unlimited": "• Fayl: cheklovsiz (Free — {free_size} MB gacha)",
   "sub.benefit_limit": "• Kunlik limitsiz (Free da — kuniga {free_limit} ta konvertatsiya)",
   "sub.benefit_limit_number": "• {free_limit} o'rniga kuniga {pro_limit} tagacha konvertatsiya",
   "sub.benefit_album": "• {free_album} o'rniga bitta xabarda {pro_album} tagacha video",
   "sub.benefit_album_unlimited": "• Bitta xabardagi videolar soniga cheklov yo'q",
   "sub.limit_none": "cheklovsiz",
-  "help.tariffs": "\n\n<b>Tariflar:</b>\n• Free — {free_res}×{free_res} gacha, fayl {free_size} MB gacha, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} gacha, fayl {pro_size} MB gacha, limit: {pro_limit}\n\nFarqlar tahlili — «💳 Obuna» bo'limida."
+  "help.tariffs": "\n\n<b>Tariflar:</b>\n• Free — {free_res}×{free_res} gacha, fayl: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} gacha, fayl: {pro_size}, limit: {pro_limit}\n\nFarqlar tahlili — «💳 Obuna» bo'limida."
 }

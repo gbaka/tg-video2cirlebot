@@ -128,6 +128,8 @@ async def main() -> int:
         for problem in errors:
             logger.error(problem)
         return 1
+    for note in config.warnings():
+        logger.warning(note)
 
     logging.getLogger().setLevel(config.logging.level)
     load_locales(LOCALES_DIR)

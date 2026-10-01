@@ -7,7 +7,7 @@ import pytest
 
 import i18n
 from config_loader import APIConfig
-from plan_copy import pro_benefits, tariff_summary
+from plan_copy import limit_bytes, pro_benefits, size_limit_key, size_text, tariff_summary
 from plans import Plan, Plans
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -91,6 +91,69 @@ def test_tariff_summary_marks_unlimited_plans():
     assert text.count(i18n.t("ru", "sub.limit_none")) == 2, text
 
 
+def free_15() -> Plan:
+    """Free после ограничения в 15 MB."""
+    return Plan("free", 15, 60, [360], 360, 24, "fast", 5, 3)
+
+
+def pro_unlimited() -> Plan:
+    """Pro без ограничения по размеру (0): потолок остаётся только у Bot API."""
+    return Plan("pro", 0, 60, [360, 480, 640], 480, 20, "medium", 0, 0)
+
+
+def test_free_plan_size_comes_from_the_config() -> None:
+    ctx = make_ctx(free_15(), pro_unlimited())
+    assert size_text("ru", ctx, free_15()) == "15 MB"
+
+
+def test_unlimited_plan_size_is_capped_by_the_cloud_api() -> None:
+    """Без local API «без ограничения» означает ровно облачные 20 MB."""
+    ctx = make_ctx(free_15(), pro_unlimited())
+    assert limit_bytes(ctx, pro_unlimited()) == 20 * 1024 * 1024
+    assert size_text("ru", ctx, pro_unlimited()) == "20 MB"
+
+
+def test_unlimited_plan_size_with_local_api_is_not_capped() -> None:
+    ctx = make_ctx(free_15(), pro_unlimited(), local=True)
+    assert limit_bytes(ctx, pro_unlimited()) == 0
+    assert size_text("ru", ctx, pro_unlimited()) == i18n.t("ru", "sub.limit_none")
+
+
+def test_cloud_cap_size_line_names_both_plans() -> None:
+    text = pro_benefits("ru", make_ctx(free_15(), pro_unlimited()))
+    assert "20 MB" in text and "вместо 15 MB" in text, text
+
+
+def test_limitless_pro_size_is_advertised_with_the_free_number() -> None:
+    text = pro_benefits("ru", make_ctx(free_15(), pro_unlimited(), local=True))
+    assert i18n.t("ru", "sub.benefit_size_unlimited").replace("{free_size}", "15") in text, text
+
+
+def test_equal_sizes_are_never_advertised() -> None:
+    """Free 15 MB и Pro 15 MB — про размер молчим."""
+    pro = Plan("pro", 15, 60, [480], 480, 20, "medium", 0, 0)
+    assert "MB" not in pro_benefits("ru", make_ctx(free_15(), pro))
+
+
+def test_rejection_key_blames_the_plan_or_the_api() -> None:
+    cloud = make_ctx(free_15(), pro_unlimited())
+    assert size_limit_key(cloud, free_15()) == "conv.too_big"
+    assert size_limit_key(cloud, pro_unlimited()) == "conv.too_big_api"
+    local = make_ctx(free_15(), pro_unlimited(), local=True)
+    assert size_limit_key(local, free_15()) == "conv.too_big"
+
+
+def test_tariff_summary_shows_unlimited_size_when_local_api() -> None:
+    text = tariff_summary("ru", make_ctx(free_15(), pro_unlimited(), local=True))
+    assert "15 MB" in text and i18n.t("ru", "sub.limit_none") in text, text
+
+
+@pytest.mark.parametrize("lang", i18n.SUPPORTED)
+def test_free_screen_shows_the_plan_size_in_every_language(lang: str):
+    ctx = make_ctx(free_15(), pro_unlimited())
+    assert size_text(lang, ctx, free_15()) == "15 MB"
+
+
 def test_help_shows_numbers_and_no_vague_wording(monkeypatch):
     from handlers.user import menu
 
@@ -164,6 +227,24 @@ async def test_pro_owner_sees_no_upsell(monkeypatch):
     assert cb.message.edits, "экран подписки не отрисован"
     assert i18n.t("ru", "sub.pro_benefits_title") not in cb.message.edits[0]
     assert "2030-01-01" in cb.message.edits[0]
+
+
+async def test_free_subscription_screen_names_the_15_mb_limit(monkeypatch):
+    from handlers.user import billing
+
+    monkeypatch.setattr(billing, "get_ctx", lambda: SimpleNamespace(
+        plans=Plans(free_15(), pro_unlimited(), []),
+        config=SimpleNamespace(api=APIConfig(local=False)),
+        locks=SimpleNamespace(hold=lambda _uid: _noop()),
+    ))
+    monkeypatch.setattr(billing, "ensure_user", _returns({"user_id": 1, "language": "ru"}))
+    monkeypatch.setattr(billing, "user_plan", _returns((free_15(), None)))
+    monkeypatch.setattr(billing, "cb_message", lambda cb: cb.message)
+    cb = _subscription_cb()
+    await billing.cb_subscription(cb)
+    text = cb.message.edits[0]
+    assert "Макс. файл: 15 MB" in text, text
+    assert "20 MB" in text, "Pro должен показываться с облачным потолком"
 
 
 async def test_free_owner_sees_the_upsell(monkeypatch):

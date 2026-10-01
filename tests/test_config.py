@@ -58,7 +58,7 @@ def test_yaml_overrides_only_given_fields(tmp_path: Path) -> None:
     })
     config = Config.load(str(path))
     assert config.plans.free.daily_limit == 99
-    assert config.plans.free.max_size_mb == 50          # остальное из DEFAULTS
+    assert config.plans.free.max_size_mb == 15          # остальное из DEFAULTS
     assert config.plans.free.max_album == 3
 
 

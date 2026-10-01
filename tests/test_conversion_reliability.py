@@ -284,6 +284,29 @@ PLAN = Plan("free", 50, 60, [96], 96, 24, "fast", 5, 3)
 USER = {"user_id": 7, "language": "en"}
 
 
+async def test_size_rejection_names_the_tariff_when_the_plan_is_lower(tmp_path, monkeypatch):
+    """Free 15 MB: виноват тариф, так и пишем."""
+    ctx = make_ctx(tmp_path, monkeypatch)
+    msg = message(ctx)
+    msg.video.file_size = 16 * 1024 * 1024
+    plan = Plan("free", 15, 60, [96], 96, 24, "fast", 5, 3)
+    await conversion.process_batch(ctx, USER, "en", plan, [msg])
+    assert not ctx.payloads
+    assert "Your plan limit" in msg.answers[0], msg.answers
+
+
+async def test_size_rejection_blames_the_api_when_the_plan_is_limitless(tmp_path, monkeypatch):
+    """Pro без лимита: 25 MB не принимает уже сам облачный Bot API."""
+    ctx = make_ctx(tmp_path, monkeypatch)
+    msg = message(ctx)
+    msg.video.file_size = 25 * 1024 * 1024
+    plan = Plan("pro", 0, 60, [96], 96, 24, "fast", 0, 0)
+    await conversion.process_batch(ctx, USER, "en", plan, [msg])
+    assert not ctx.payloads
+    assert "Telegram Bot API" in msg.answers[0], msg.answers
+    assert "plan limit" not in msg.answers[0], msg.answers
+
+
 async def test_long_source_requires_explicit_duration_even_when_only_fraction_over_limit(
     tmp_path,
     monkeypatch,

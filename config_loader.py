@@ -22,12 +22,13 @@ DEFAULTS: dict[str, Any] = {
     "channel": {"invite_text": "Вступить в канал"},
     "plans": {
         "free": {
-            "max_size_mb": 50, "max_duration_sec": 60, "resolutions": [360],
+            "max_size_mb": 15, "max_duration_sec": 60, "resolutions": [360],
             "default_resolution": 360, "crf": 24, "preset": "fast",
             "daily_limit": 5, "max_album": 3,
         },
         "pro": {
-            "max_size_mb": 200, "max_duration_sec": 60, "resolutions": [360, 480, 640],
+            # 0 = без ограничения по размеру: файл упирается только в потолок Bot API
+            "max_size_mb": 0, "max_duration_sec": 60, "resolutions": [360, 480, 640],
             "default_resolution": 480, "crf": 20, "preset": "medium",
             "daily_limit": 0, "max_album": 0,
         },
@@ -218,6 +219,24 @@ class Config:
         if not 0 <= self.support.daily_limit <= 100:
             errors.append("support.daily_limit: от 0 (без лимита) до 100 обращений в сутки")
         return errors
+
+    def warnings(self) -> list[str]:
+        """Настройки, которые не мешают запуску, но и не действуют.
+
+        Без локального Bot API облако не отдаёт боту файлы больше 20 MB,
+        поэтому лимит тарифа выше этого значения — только самообман.
+        """
+        notes = []
+        if not self.api.local:
+            cloud_mb = 20 * 1024 * 1024 // (1024 * 1024)
+            for plan in (self.plans.free, self.plans.pro):
+                if plan.max_size_mb > cloud_mb:
+                    notes.append(
+                        f"plans.{plan.code}.max_size_mb: {plan.max_size_mb} MB не действует — "
+                        f"облачный Bot API отдаёт не больше {cloud_mb} MB "
+                        f"(нужен api.local: true)"
+                    )
+        return notes
 
 
 def _check_types(data: Any) -> None:

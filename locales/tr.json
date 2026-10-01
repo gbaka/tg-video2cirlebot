@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Nasıl kullanılır</b>\n\n1. Bir video gönderin (dosya, video notu veya video içeren belge).\n2. Dönüştürmeyi bekleyin.\n3. Hazır yuvarlağınızı alın.\n\n<b>📋 Formatlar:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob ve 30+ tür daha.\n\n<b>⚙️ Telegram sınırları:</b> yuvarlak kare olur, ~60 saniyeye kadar, H.264/AAC kodekleri.",
   "help.text": "ℹ️ <b>Yardım</b>\n\n<b>Bot ne yapar:</b> videoları Telegram yuvarlaklarına dönüştürür.\n\n<b>Komutlar:</b>\n/start — ana menü\n/help — bu yardım\n/setlanguage — dili değiştir\n/fragment — parça seç\n/terms — koşullar\n/paysupport — ödeme desteği\n\n<b>🔒 Gizlilik:</b> bot yalnızca özel sohbetlerde çalışır.",
   "sub.title": "💳 <b>Abonelik</b>",
-  "sub.current_free": "\n\n<b>Tarifeniz:</b> Free\n• Kalite: {res}×{res} değerine kadar\n• Maks. dosya: {size} MB\n• Limit: günde {limit} dönüştürme\n• Tek mesajda: {album} videoya kadar",
-  "sub.current_free_unlimited": "\n\n<b>Tarifeniz:</b> Free\n• Kalite: {res}×{res} değerine kadar\n• Maks. dosya: {size} MB\n• Limit: sınırsız\n• Tek mesajda: {album} videoya kadar",
-  "sub.current_pro": "\n\n<b>Tarifeniz:</b> ⭐ Pro\n• Kalite: {maxres}×{maxres} değerine kadar (seçilebilir)\n• Maks. dosya: {size} MB\n• Limit: sınırsız\n• Tek mesajda: sınırsız\n• Geçerlilik: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Tarifeniz:</b> Free\n• Kalite: {res}×{res} değerine kadar\n• Maks. dosya: {size}\n• Limit: günde {limit} dönüştürme\n• Tek mesajda: {album} videoya kadar",
+  "sub.current_free_unlimited": "\n\n<b>Tarifeniz:</b> Free\n• Kalite: {res}×{res} değerine kadar\n• Maks. dosya: {size}\n• Limit: sınırsız\n• Tek mesajda: {album} videoya kadar",
+  "sub.current_pro": "\n\n<b>Tarifeniz:</b> ⭐ Pro\n• Kalite: {maxres}×{maxres} değerine kadar (seçilebilir)\n• Maks. dosya: {size}\n• Limit: sınırsız\n• Tek mesajda: sınırsız\n• Geçerlilik: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Pro edinme/uzatma:</b>",
   "sub.buy_btn": "Pro · {days} gün · {stars} ⭐",
   "sub.no_prices": "\n\nSatın alma geçici olarak kullanılamıyor.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Yuvarlağa dönüştürülüyor…",
   "conv.uploading": "📤 Yuvarlak gönderiliyor…",
   "conv.too_big": "❌ Dosya çok büyük: {size} MB.\nTarifenizin limiti: {limit} MB.",
+  "conv.too_big_api": "❌ Dosya çok büyük: {size} MB.\nTelegram Bot API bota en fazla {limit} MB boyutunda dosya verir.",
   "conv.too_long": "❌ Video çok uzun: {duration} sn.\nTarifenizin limiti: {limit} sn.",
   "conv.unsupported": "❌ Desteklenmeyen format: {ext}",
   "conv.daily_limit": "❌ Günlük dönüştürme limitine ulaşıldı ({limit}).\n\nSınırsız için ⭐ Pro edinin veya yarın tekrar deneyin.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Pro neler sağlar</b>",
   "sub.benefit_quality": "• Kalite: {free_res}×{free_res} yerine {pro_res}×{pro_res} değerine kadar",
   "sub.benefit_size": "• Dosya: {free_size} MB yerine {pro_size} MB'a kadar",
+  "sub.benefit_size_unlimited": "• Dosya: sınırsız (Free'de — {free_size} MB'a kadar)",
   "sub.benefit_limit": "• Günlük limit yok (Free'de günde {free_limit} dönüştürme)",
   "sub.benefit_limit_number": "• {free_limit} yerine günde {pro_limit} dönüştürmeye kadar",
   "sub.benefit_album": "• {free_album} yerine tek mesajda {pro_album} videoya kadar",
   "sub.benefit_album_unlimited": "• Tek mesajdaki video sayısında sınır yok",
   "sub.limit_none": "sınırsız",
-  "help.tariffs": "\n\n<b>Tarifeler:</b>\n• Free — {free_res}×{free_res} değerine kadar, dosya {free_size} MB'a kadar, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} değerine kadar, dosya {pro_size} MB'a kadar, limit: {pro_limit}\n\nFarkların tamamı «💳 Abonelik» bölümünde."
+  "help.tariffs": "\n\n<b>Tarifeler:</b>\n• Free — {free_res}×{free_res} değerine kadar, dosya: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} değerine kadar, dosya: {pro_size}, limit: {pro_limit}\n\nFarkların tamamı «💳 Abonelik» bölümünde."
 }

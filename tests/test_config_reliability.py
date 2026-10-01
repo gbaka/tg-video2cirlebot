@@ -57,9 +57,48 @@ def test_effective_download_limit_is_independent_of_tariff(tmp_path: Path) -> No
 
 
 def test_local_api_preserves_tariff_limit(tmp_path: Path) -> None:
-    config = load(tmp_path, {"api": {"base_url": "http://bot-api:8081", "local": True}})
+    config = load(tmp_path, {
+        "api": {"base_url": "http://bot-api:8081", "local": True},
+        "plans": {"pro": {"max_size_mb": 200}},
+    })
     assert not config.validate()
     assert config.api.input_limit_bytes(config.plans.pro.max_size_bytes) == 200 * 1024 * 1024
+
+
+def test_local_api_with_no_plan_limit_leaves_no_limit(tmp_path: Path) -> None:
+    """Pro без ограничения: локальный API не ставит свой потолок."""
+    config = load(tmp_path, {"api": {"base_url": "http://bot-api:8081", "local": True}})
+    assert config.plans.pro.max_size_mb == 0
+    assert config.api.input_limit_bytes(config.plans.pro.max_size_bytes) == 0
+
+
+def test_free_plan_keeps_a_limit_below_the_cloud_cap(tmp_path: Path) -> None:
+    """15 MB меньше облачных 20 MB — значит лимит тарифа и применяется."""
+    config = load(tmp_path, {})
+    assert config.plans.free.max_size_mb == 15
+    assert config.api.input_limit_bytes(config.plans.free.max_size_bytes) == 15 * 1024 * 1024
+
+
+def test_ineffective_size_limit_is_reported_as_a_warning(tmp_path: Path) -> None:
+    """Лимит выше облачного потолка не действует — предупреждаем, но не падаем."""
+    config = load(tmp_path, {"plans": {"pro": {"max_size_mb": 200}}})
+    assert not config.validate()
+    notes = config.warnings()
+    assert len(notes) == 1 and "plans.pro.max_size_mb" in notes[0], notes
+    assert "200" in notes[0] and "20" in notes[0]
+
+
+def test_current_plan_limits_produce_no_warnings(tmp_path: Path) -> None:
+    config = load(tmp_path, {})
+    assert config.warnings() == []
+
+
+def test_local_api_makes_a_big_plan_limit_effective_and_silent(tmp_path: Path) -> None:
+    config = load(tmp_path, {
+        "api": {"base_url": "http://bot-api:8081", "local": True},
+        "plans": {"pro": {"max_size_mb": 200}},
+    })
+    assert config.warnings() == []
 
 
 @pytest.mark.parametrize("api", [

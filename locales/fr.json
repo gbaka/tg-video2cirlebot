@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Comment utiliser</b>\n\n1. Envoyez une vidéo (fichier, message vidéo ou document vidéo).\n2. Attendez la conversion.\n3. Recevez votre cercle prêt.\n\n<b>📋 Formats :</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob et 30+ autres.\n\n<b>⚙️ Limites Telegram :</b> le cercle est carré, jusqu'à ~60 secondes, codecs H.264/AAC.",
   "help.text": "ℹ️ <b>Aide</b>\n\n<b>Ce que fait le bot :</b> il convertit les vidéos en « cercles » Telegram.\n\n<b>Commandes :</b>\n/start — menu principal\n/help — cette aide\n/setlanguage — changer de langue\n/fragment — choisir un fragment\n/terms — conditions\n/paysupport — support paiement\n\n<b>🔒 Confidentialité :</b> le bot fonctionne uniquement en messages privés.",
   "sub.title": "💳 <b>Abonnement</b>",
-  "sub.current_free": "\n\n<b>Votre offre :</b> Free\n• Qualité : jusqu'à {res}×{res}\n• Fichier max : {size} MB\n• Limite : {limit} conversions par jour\n• Par message : jusqu'à {album} vidéos",
-  "sub.current_free_unlimited": "\n\n<b>Votre offre :</b> Free\n• Qualité : jusqu'à {res}×{res}\n• Fichier max : {size} MB\n• Limite : sans limite\n• Par message : jusqu'à {album} vidéos",
-  "sub.current_pro": "\n\n<b>Votre offre :</b> ⭐ Pro\n• Qualité : jusqu'à {maxres}×{maxres} (au choix)\n• Fichier max : {size} MB\n• Limite : sans limite\n• Par message : sans limite\n• Valable : <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Votre offre :</b> Free\n• Qualité : jusqu'à {res}×{res}\n• Fichier max : {size}\n• Limite : {limit} conversions par jour\n• Par message : jusqu'à {album} vidéos",
+  "sub.current_free_unlimited": "\n\n<b>Votre offre :</b> Free\n• Qualité : jusqu'à {res}×{res}\n• Fichier max : {size}\n• Limite : sans limite\n• Par message : jusqu'à {album} vidéos",
+  "sub.current_pro": "\n\n<b>Votre offre :</b> ⭐ Pro\n• Qualité : jusqu'à {maxres}×{maxres} (au choix)\n• Fichier max : {size}\n• Limite : sans limite\n• Par message : sans limite\n• Valable : <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Activer/prolonger Pro :</b>",
   "sub.buy_btn": "Pro · {days} j · {stars} ⭐",
   "sub.no_prices": "\n\nAchat temporairement indisponible.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Conversion en cercle…",
   "conv.uploading": "📤 Envoi du cercle…",
   "conv.too_big": "❌ Fichier trop volumineux : {size} MB.\nLimite de votre offre : {limit} MB.",
+  "conv.too_big_api": "❌ Fichier trop volumineux : {size} MB.\nTelegram Bot API ne transmet au bot que des fichiers jusqu'à {limit} MB.",
   "conv.too_long": "❌ Vidéo trop longue : {duration} s.\nLimite de votre offre : {limit} s.",
   "conv.unsupported": "❌ Format non pris en charge : {ext}",
   "conv.daily_limit": "❌ Limite quotidienne de conversions atteinte ({limit}).\n\nActivez ⭐ Pro pour l'illimité ou réessayez demain.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Ce qu'apporte Pro</b>",
   "sub.benefit_quality": "• Qualité : jusqu'à {pro_res}×{pro_res} au lieu de {free_res}×{free_res}",
   "sub.benefit_size": "• Fichier : jusqu'à {pro_size} MB au lieu de {free_size} MB",
+  "sub.benefit_size_unlimited": "• Fichier : sans limite (sur Free — jusqu'à {free_size} MB)",
   "sub.benefit_limit": "• Sans limite quotidienne (sur Free — {free_limit} conversions par jour)",
   "sub.benefit_limit_number": "• Jusqu'à {pro_limit} conversions par jour au lieu de {free_limit}",
   "sub.benefit_album": "• Jusqu'à {pro_album} vidéos par message au lieu de {free_album}",
   "sub.benefit_album_unlimited": "• Sans limite du nombre de vidéos par message",
   "sub.limit_none": "sans limite",
-  "help.tariffs": "\n\n<b>Offres :</b>\n• Free — jusqu'à {free_res}×{free_res}, fichier jusqu'à {free_size} MB, limite : {free_limit}\n• ⭐ Pro — jusqu'à {pro_res}×{pro_res}, fichier jusqu'à {pro_size} MB, limite : {pro_limit}\n\nVoir le détail des différences dans la section « 💳 Abonnement »."
+  "help.tariffs": "\n\n<b>Offres :</b>\n• Free — jusqu'à {free_res}×{free_res}, fichier : {free_size}, limite : {free_limit}\n• ⭐ Pro — jusqu'à {pro_res}×{pro_res}, fichier : {pro_size}, limite : {pro_limit}\n\nVoir le détail des différences dans la section « 💳 Abonnement »."
 }

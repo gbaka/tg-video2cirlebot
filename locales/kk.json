@@ -19,9 +19,9 @@
   "info.text": "🎬 <b>Қалай пайдалану керек</b>\n\n1. Бейне жіберіңіз (файл, бейнехабарлама немесе бейне бар құжат).\n2. Айналдыруды күтіңіз.\n3. Дайын дөңгелекті алыңыз.\n\n<b>📋 Форматтар:</b> mp4, mov, avi, mkv, webm, flv, wmv, 3gp, ts, mts, vob және тағы 30+.\n\n<b>⚙️ Telegram шектеулері:</b> дөңгелек шаршы, шамамен 60 секундқа дейін, H.264/AAC кодектері.",
   "help.text": "ℹ️ <b>Анықтама</b>\n\n<b>Бот не істейді:</b> бейнені Telegram «дөңгелектеріне» айналдырады.\n\n<b>Командалар:</b>\n/start — басты мәзір\n/help — осы анықтама\n/setlanguage — тілді ауыстыру\n/fragment — үзінді таңдау\n/terms — шарттар\n/paysupport — төлем бойынша қолдау\n\n<b>🔒 Жекелік:</b> бот тек жеке хабарламаларда жұмыс істейді.",
   "sub.title": "💳 <b>Жазылым</b>",
-  "sub.current_free": "\n\n<b>Сіздің тарифіңіз:</b> Free\n• Сапасы: {res}×{res} дейін\n• Макс. файл: {size} MB\n• Шектеу: тәулігіне {limit} айналдыру\n• Бір хабарламада: {album} бейнеге дейін",
-  "sub.current_free_unlimited": "\n\n<b>Сіздің тарифіңіз:</b> Free\n• Сапасы: {res}×{res} дейін\n• Макс. файл: {size} MB\n• Шектеу: шектеусіз\n• Бір хабарламада: {album} бейнеге дейін",
-  "sub.current_pro": "\n\n<b>Сіздің тарифіңіз:</b> ⭐ Pro\n• Сапасы: {maxres}×{maxres} дейін (таңдау бойынша)\n• Макс. файл: {size} MB\n• Шектеу: шектеусіз\n• Бір хабарламада: шектеусіз\n• Қолданыста: <b>{expires}</b>",
+  "sub.current_free": "\n\n<b>Сіздің тарифіңіз:</b> Free\n• Сапасы: {res}×{res} дейін\n• Макс. файл: {size}\n• Шектеу: тәулігіне {limit} айналдыру\n• Бір хабарламада: {album} бейнеге дейін",
+  "sub.current_free_unlimited": "\n\n<b>Сіздің тарифіңіз:</b> Free\n• Сапасы: {res}×{res} дейін\n• Макс. файл: {size}\n• Шектеу: шектеусіз\n• Бір хабарламада: {album} бейнеге дейін",
+  "sub.current_pro": "\n\n<b>Сіздің тарифіңіз:</b> ⭐ Pro\n• Сапасы: {maxres}×{maxres} дейін (таңдау бойынша)\n• Макс. файл: {size}\n• Шектеу: шектеусіз\n• Бір хабарламада: шектеусіз\n• Қолданыста: <b>{expires}</b>",
   "sub.buy_title": "\n\n<b>⭐ Pro рәсімдеу/ұзарту:</b>",
   "sub.buy_btn": "Pro · {days} күн · {stars} ⭐",
   "sub.no_prices": "\n\nСатып алу уақытша қолжетімсіз.",
@@ -70,6 +70,7 @@
   "conv.converting": "🔄 Дөңгелекке айналдырып жатырмын…",
   "conv.uploading": "📤 Дөңгелекті жіберіп жатырмын…",
   "conv.too_big": "❌ Файл тым үлкен: {size} MB.\nСіздің тариф шектеуі: {limit} MB.",
+  "conv.too_big_api": "❌ Файл тым үлкен: {size} MB.\nTelegram Bot API ботқа ең көбі {limit} MB файл береді.",
   "conv.too_long": "❌ Бейне тым ұзақ: {duration} с.\nСіздің тариф шектеуі: {limit} с.",
   "conv.unsupported": "❌ Қолдау көрсетілмейтін формат: {ext}",
   "conv.daily_limit": "❌ Тәуліктік айналдыру шегіне жеттіңіз ({limit}).\n\nШектеусіз болу үшін ⭐ Pro рәсімдеңіз немесе ертең қайталап көріңіз.",
@@ -170,10 +171,11 @@
   "sub.pro_benefits_title": "\n\n<b>⭐ Pro не береді</b>",
   "sub.benefit_quality": "• Сапасы: {pro_res}×{pro_res} дейін, {free_res}×{free_res} орнына",
   "sub.benefit_size": "• Файл: {pro_size} MB дейін, {free_size} MB орнына",
+  "sub.benefit_size_unlimited": "• Файл: шектеусіз (Free — {free_size} MB дейін)",
   "sub.benefit_limit": "• Тәуліктік шектеусіз (Free-де — тәулігіне {free_limit} айналдыру)",
   "sub.benefit_limit_number": "• {free_limit} орнына тәулігіне {pro_limit} айналдыру",
   "sub.benefit_album": "• Бір хабарламада {pro_album} бейнеге дейін, {free_album} орнына",
   "sub.benefit_album_unlimited": "• Бір хабарламадағы бейне санына шектеу жоқ",
   "sub.limit_none": "шектеусіз",
-  "help.tariffs": "\n\n<b>Тарифтер:</b>\n• Free — {free_res}×{free_res} дейін, файл {free_size} MB дейін, шектеу: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} дейін, файл {pro_size} MB дейін, шектеу: {pro_limit}\n\nАйырмашылықтарды «💳 Жазылым» бөлімінен қараңыз."
+  "help.tariffs": "\n\n<b>Тарифтер:</b>\n• Free — {free_res}×{free_res} дейін, файл: {free_size}, шектеу: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} дейін, файл: {pro_size}, шектеу: {pro_limit}\n\nАйырмашылықтарды «💳 Жазылым» бөлімінен қараңыз."
 }
