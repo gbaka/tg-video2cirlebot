@@ -17,6 +17,14 @@ DEFAULT_LANG = "ru"
 LANG_NAMES: dict[str, str] = {
     "ru": "🇷🇺 Русский",
     "en": "🇬🇧 English",
+    "uk": "🇺🇦 Українська",
+    "kk": "🇰🇿 Қазақша",
+    "uz": "🇺🇿 Oʻzbekcha",
+    "es": "🇪🇸 Español",
+    "de": "🇩🇪 Deutsch",
+    "fr": "🇫🇷 Français",
+    "pt": "🇧🇷 Português",
+    "tr": "🇹🇷 Türkçe",
 }
 SUPPORTED = tuple(LANG_NAMES)
 
@@ -59,3 +67,20 @@ def t(lang: str, key: str, /, **kwargs) -> str:
 
 def lang_name(lang: str) -> str:
     return LANG_NAMES.get(lang, lang)
+
+
+def detect_language(language_code: str | None, fallback: str = DEFAULT_LANG) -> str:
+    """
+    Язык пользователя по language_code из клиента Telegram.
+
+    Telegram присылает региональные варианты ('pt-BR', 'uz-Latn', 'en_US'),
+    поэтому сравниваем и код целиком, и его базовую часть. Незнакомый язык —
+    fallback (default_language из конфига).
+    """
+    if not language_code:
+        return fallback
+    code = language_code.strip().lower().replace("_", "-")
+    if code in SUPPORTED:
+        return code
+    base = code.split("-", 1)[0]
+    return base if base in SUPPORTED else fallback

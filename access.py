@@ -8,6 +8,7 @@ import logging
 from aiogram.types import CallbackQuery, Message
 
 from context import get_ctx
+from i18n import detect_language
 from plans import Plan
 
 logger = logging.getLogger(__name__)
@@ -23,11 +24,15 @@ async def ensure_user(event: Message | CallbackQuery) -> dict:
     tg = event.from_user
     if tg is None:  # например, сообщение от имени канала
         raise ValueError("Событие без пользователя")
+    # Язык берём из клиента Telegram, а не только из конфига: пользователь
+    # попадает в понятный ему интерфейс сразу, сменить можно вручную.
     return await ctx.users.get_or_create(
         user_id=tg.id,
         username=tg.username,
         first_name=tg.full_name or tg.first_name,
-        default_language=ctx.config.default_language,
+        default_language=detect_language(
+            getattr(tg, "language_code", None), ctx.config.default_language,
+        ),
     )
 
 
