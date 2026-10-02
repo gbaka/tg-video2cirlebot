@@ -26,7 +26,7 @@ plans:
     default_resolution: 360
     # crf — качество: 0 (максимум, огромный файл) … 51 (минимум). Меньше = лучше.
     # Ориентиры: 18–23 — высокое, 24–28 — среднее, 29 и выше — уже заметная потеря.
-    crf: 24
+    crf: 26
     # preset — скорость кодирования x264 при том же качестве (crf), а не само качество.
     # Варианты (от быстрого к медленному):
     #   ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
@@ -40,7 +40,7 @@ plans:
     max_duration_sec: 60
     resolutions: [360, 480, 640]
     default_resolution: 480
-    crf: 20                  # crf — как у free (0…51, меньше = лучше); 20 — выше качеством
+    crf: 22                  # crf — как у free (0…51, меньше = лучше); 22 — выше качеством
     preset: "veryfast"       # preset — варианты и смысл см. у plans.free.preset
     daily_limit: 0
     max_album: 0             # 0 = без ограничения

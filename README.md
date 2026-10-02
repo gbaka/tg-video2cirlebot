@@ -72,7 +72,7 @@ plans:                       # тарифы
     max_duration_sec: 60     # макс. длительность
     resolutions: [360]       # доступные разрешения кружка
     default_resolution: 360
-    crf: 24                  # качество: 0 (максимум)…51 (минимум), меньше = лучше
+    crf: 26                  # качество: 0 (максимум)…51 (минимум), меньше = лучше
     # preset — скорость кодирования при том же качестве (crf). Варианты:
     # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
     preset: "veryfast"
@@ -83,7 +83,7 @@ plans:                       # тарифы
     max_duration_sec: 60
     resolutions: [360, 480, 640]
     default_resolution: 480
-    crf: 20                  # crf — как у free (0…51, меньше = лучше)
+    crf: 22                  # crf — как у free (0…51, меньше = лучше)
     preset: "veryfast"       # preset — варианты см. у plans.free.preset
     daily_limit: 0
     max_album: 0             # 0 = без ограничения
