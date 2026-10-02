@@ -10,6 +10,7 @@ import contextlib
 import html
 import logging
 import math
+import re
 import tempfile
 import time
 from collections.abc import Awaitable, Callable
@@ -29,6 +30,12 @@ from tempfiles import TempFiles
 from video_converter import VideoConverter
 
 logger = logging.getLogger(__name__)
+
+#: Жёсткий лимит Bot API на размер видео-сообщения («кружка») — 12 MB.
+#: Он МЕНЬШЕ потолка загрузки (20 MB), поэтому файл, который download() уже
+#: принял, Telegram может отклонить на отправке: `file of size … is too big for
+#: a video note`. Проверяем размер результата сами, не дожидаясь отказа API.
+VIDEO_NOTE_MAX_BYTES = 12 * 1024 * 1024
 
 #: (сообщение, file_id, имя файла, размер)
 Item = tuple[Message, str, str, int]
@@ -80,6 +87,39 @@ def _usable_cache_record(cached: dict[str, Any] | None) -> bool:
         and math.isfinite(output)
         and output > 0
     )
+
+
+def _is_note_too_big(exc: Exception) -> bool:
+    """Отказ Telegram именно из-за размера кружка, а не любая bad request."""
+    text = str(exc).lower()
+    return isinstance(exc, TelegramBadRequest) and "video note" in text and "too big" in text
+
+
+def _note_size_from(exc: Exception) -> int:
+    """Размер из текста отказа API; если распарсить не удалось — сам лимит."""
+    match = re.search(r"size (\d+) bytes", str(exc))
+    return int(match.group(1)) if match else VIDEO_NOTE_MAX_BYTES
+
+
+def note_too_big_text(lang: str, plan: Plan, quality: int | None, size_bytes: int) -> str:
+    """Причина отказа и что делать: качество ниже либо короче фрагмент.
+
+    Подсказка выбирается по тарифу: если у пользователя есть разрешение ниже
+    выбранного, советуем его; иначе остаётся только обрезать видео.
+    """
+    used = plan.normalize_resolution(quality)
+    lower = [r for r in plan.resolutions if r < used]
+    text = t(
+        lang,
+        "conv.note_too_big",
+        size=round(size_bytes / 1024 / 1024, 1),
+        limit=VIDEO_NOTE_MAX_BYTES // 1024 // 1024,
+    )
+    if lower:
+        hint = t(lang, "conv.note_too_big_hint_quality", hint=max(lower))
+    else:
+        hint = t(lang, "conv.note_too_big_hint_fragment")
+    return f"{text}\n\n{hint}"
 
 
 async def convert_one(
@@ -268,6 +308,13 @@ async def convert_one(
                 encode_timeout,
             )
             await status.edit_text(step_text(lang, "conv.uploading", index, total))
+            output_size = Path(output_path).stat().st_size
+            if output_size > VIDEO_NOTE_MAX_BYTES:
+                await msg.answer(
+                    note_too_big_text(lang, plan, user.get("quality"), output_size)
+                )
+                await record("error", duration=meta["duration"], error="note_too_big")
+                return False
             sent = await asyncio.wait_for(
                 msg.answer_video_note(
                     FSInputFile(output_path, filename="circle.mp4"),
@@ -295,6 +342,15 @@ async def convert_one(
             await record("error", error="cancelled")
         raise
     except Exception as exc:
+        if _is_note_too_big(exc):
+            # Тот же отказ, что ловим заранее по размеру файла; здесь — на случай,
+            # если Telegram отверг по причине, которую локальная проверка не видит.
+            logger.warning("Кружок отвергнут Telegram по размеру: %s", exc)
+            await record("error", error="note_too_big")
+            await msg.answer(
+                note_too_big_text(lang, plan, user.get("quality"), _note_size_from(exc))
+            )
+            return False
         logger.exception("Conversion failed")
         code = (
             "timeout"

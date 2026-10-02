@@ -140,6 +140,81 @@ async def test_errors_use_safe_codes_not_untrusted_exception_text(
     assert msg.answers[-1] == conversion.t("en", "conv.error")
 
 
+async def test_oversized_note_is_rejected_with_a_quality_hint(tmp_path, monkeypatch):
+    """Кружок тяжелее лимита видео-сообщения: не отправляем, объясняем и советуем качество ниже."""
+    ctx = make_ctx(tmp_path, monkeypatch)
+    monkeypatch.setattr(conversion, "VIDEO_NOTE_MAX_BYTES", 1024 * 1024)
+
+    async def big_encode(_input, **options):
+        ctx.encodes.append(options)
+        output = options.get("output_path", str(tmp_path / "out.mp4"))
+        Path(output).write_bytes(b"x" * (2 * 1024 * 1024))
+        return output, {"duration": 3, "width": 192}
+
+    ctx.converter.convert_to_circle = big_encode
+    plan = Plan("pro", 0, 60, [96, 192], 192, 20, "medium", 0, 0)
+    msg = message(ctx)
+    await conversion.process_batch(ctx, dict(USER, quality=192), "en", plan, [msg])
+
+    assert not ctx.payloads, "перетяжелённый кружок не должен уходить в Telegram"
+    assert ctx.usage.records[-1]["error"] == "note_too_big"
+    text = msg.answers[-1]
+    assert "2.0" in text and "1 MB" in text, text
+    assert "96×96" in text, "подсказка не называет доступное разрешение ниже"
+    assert "/fragment" in text
+
+
+async def test_oversized_note_without_a_lower_quality_suggests_a_shorter_fragment(
+    tmp_path, monkeypatch
+):
+    """Качество уже минимальное: остаётся только обрезать видео."""
+    ctx = make_ctx(tmp_path, monkeypatch)
+    monkeypatch.setattr(conversion, "VIDEO_NOTE_MAX_BYTES", 1024 * 1024)
+
+    async def big_encode(_input, **options):
+        ctx.encodes.append(options)
+        output = options.get("output_path", str(tmp_path / "out.mp4"))
+        Path(output).write_bytes(b"x" * (2 * 1024 * 1024))
+        return output, {"duration": 3, "width": 96}
+
+    ctx.converter.convert_to_circle = big_encode
+    msg = message(ctx)
+    await conversion.process_batch(ctx, USER, "en", PLAN, [msg])
+
+    assert not ctx.payloads
+    assert ctx.usage.records[-1]["error"] == "note_too_big"
+    text = msg.answers[-1]
+    assert "/fragment" in text and "×" not in text, text
+
+
+async def test_api_note_too_big_error_is_reported_with_a_hint(tmp_path, monkeypatch):
+    """Страховка: если отверг сам Telegram, показываем ту же подсказку, а не общее «ошибка»."""
+    from aiogram.exceptions import TelegramBadRequest
+    from aiogram.methods import SendVideoNote
+
+    ctx = make_ctx(tmp_path, monkeypatch)
+    msg = message(ctx)
+
+    async def rejected(*_args, **_kwargs):
+        raise TelegramBadRequest(
+            method=SendVideoNote(chat_id=1, video_note="id"),
+            message=(
+                "Bad Request: file of size 13908412 bytes is too big for a video note; "
+                "the maximum size is 12582912 bytes"
+            ),
+        )
+
+    msg.answer_video_note = rejected
+    plan = Plan("pro", 0, 60, [96, 192], 192, 20, "medium", 0, 0)
+    await conversion.process_batch(ctx, dict(USER, quality=192), "en", plan, [msg])
+
+    assert ctx.usage.records[-1]["error"] == "note_too_big"
+    text = msg.answers[-1]
+    assert text != conversion.t("en", "conv.error"), text
+    assert "13.3" in text and "12 MB" in text, text
+    assert "96×96" in text
+
+
 async def test_progress_does_not_repeat_same_percentage(tmp_path, monkeypatch):
     ctx = make_ctx(tmp_path, monkeypatch)
     original = ctx.converter.convert_to_circle
