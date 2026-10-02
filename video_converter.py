@@ -75,10 +75,14 @@ class VideoConverter:
         probe_timeout_sec: float = 15,
         encode_timeout_sec: float = 120,
         terminate_timeout_sec: float = 2,
+        threads: int = 1,
     ):
         self.probe_timeout_sec = probe_timeout_sec
         self.encode_timeout_sec = encode_timeout_sec
         self.terminate_timeout_sec = terminate_timeout_sec
+        # Потоки на одну конвертацию (декодер, фильтры и x264). Значение приходит
+        # из конфига: 0 там означает «авто», поэтому сюда попадает уже посчитанное.
+        self.threads = max(1, int(threads))
 
     @classmethod
     def is_supported(cls, filename: str) -> bool:
@@ -333,11 +337,11 @@ class VideoConverter:
                     "-protocol_whitelist",
                     "file,pipe",
                     "-threads",
-                    str(self.THREADS),
+                    str(self.threads),
                     "-filter_threads",
-                    str(self.THREADS),
+                    str(self.threads),
                     "-filter_complex_threads",
-                    str(self.THREADS),
+                    str(self.threads),
                     "-ss",
                     str(trim_start),
                     "-i",
@@ -353,7 +357,7 @@ class VideoConverter:
                     "-c:v",
                     "libx264",
                     "-threads",
-                    str(self.THREADS),
+                    str(self.threads),
                     "-r",
                     str(self.FPS),
                     "-maxrate",

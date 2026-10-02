@@ -104,7 +104,8 @@ support:                     # лимиты против спама в /paysuppo
   daily_limit: 3             # обращений в сутки (0 = без лимита)
 
 processing:
-  workers: 1
+  workers: 1                 # конвертаций одновременно (на многих пользователей)
+  threads: 1                 # потоков ffmpeg на одну конвертацию (1 — оптимум для ultrafast; 0 = авто)
   queue_size: 20
   probe_timeout_sec: 15
   encode_timeout_sec: 120

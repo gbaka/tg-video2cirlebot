@@ -144,3 +144,60 @@ def test_log_level_passthrough(tmp_path: Path, level: str) -> None:
         "logging": {"level": level},
     })
     assert Config.load(str(path)).logging.level == level
+
+
+def test_threads_auto_reads_the_cgroup_quota(monkeypatch) -> None:
+    """0 = авто: половина квоты контейнера, не больше видимых ядер и потолка."""
+    import config_loader as cl
+
+    # Квота 2 CPU → 1 поток: два в упор к квоте упираются в троттлинг и медленнее.
+    monkeypatch.setattr(cl.os, "cpu_count", lambda: 8)
+    monkeypatch.setattr(cl, "_cgroup_cpu_quota", lambda: 2.0)
+    assert cl.detect_threads(0) == 1
+
+    # Квота 4 CPU → 2 потока (запас против троттлинга).
+    monkeypatch.setattr(cl, "_cgroup_cpu_quota", lambda: 4.0)
+    assert cl.detect_threads(0) == 2
+
+    # Явное значение из конфига важнее любой квоты.
+    assert cl.detect_threads(3) == 3
+
+    # Квоты нет — половина видимых ядер.
+    monkeypatch.setattr(cl, "_cgroup_cpu_quota", lambda: None)
+    assert cl.detect_threads(0) == 4
+
+    # Квота больше числа ядер (маленький сервер) — не переполняем его.
+    monkeypatch.setattr(cl.os, "cpu_count", lambda: 1)
+    monkeypatch.setattr(cl, "_cgroup_cpu_quota", lambda: 4.0)
+    assert cl.detect_threads(0) == 1
+
+    # Абсолютный потолок защищает от бессмысленно больших значений.
+    monkeypatch.setattr(cl.os, "cpu_count", lambda: 64)
+    monkeypatch.setattr(cl, "_cgroup_cpu_quota", lambda: 64.0)
+    assert cl.detect_threads(0, cap=8) == 8
+
+
+def test_processing_threads_default_is_single_thread() -> None:
+    """Дефолт — 1 поток: на нашем preset ultrafast потоки только мешают."""
+    config = Config.load()
+    assert config.processing.threads == 1
+    assert config.processing.effective_threads() == 1
+
+
+@pytest.mark.parametrize("value", [-1, 65])
+def test_out_of_range_threads_is_rejected(tmp_path: Path, value: int) -> None:
+    path = write_config(tmp_path / "c.yaml", {
+        "bot": {"token": "1:A", "admin_ids": [1]},
+        "processing": {"threads": value},
+    })
+    errors = Config.load(str(path)).validate()
+    assert any("processing.threads" in e for e in errors), errors
+
+
+def test_non_integer_threads_is_rejected(tmp_path: Path) -> None:
+    path = write_config(tmp_path / "c.yaml", {
+        "bot": {"token": "1:A", "admin_ids": [1]},
+        "processing": {"threads": "2"},
+    })
+    with pytest.raises(ValueError, match=r"processing\.threads"):
+        Config.load(str(path))

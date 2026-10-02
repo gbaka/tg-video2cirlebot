@@ -384,3 +384,35 @@ async def test_broken_input_never_leaves_output(tmp_path):
     with pytest.raises((RuntimeError, ValueError)):
         await VideoConverter().convert_to_circle(str(broken), output_path=str(output))
     assert not output.exists()
+
+
+async def test_threads_setting_reaches_ffmpeg(tmp_path, monkeypatch):
+    """Потоки из конфига доходят до ffmpeg: декодер, фильтры и энкодер — одним числом."""
+    source = tmp_path / "in.mp4"
+    source.write_bytes(b"x")
+    output = tmp_path / "out.mp4"
+    captured: dict = {}
+
+    async def fake_probe(_path, **_kwargs):
+        return {"duration": 1.0, "width": 160, "height": 90,
+                "display_width": 160.0, "display_height": 90.0,
+                "rotation": 0.0, "sample_aspect_ratio": "1:1"}
+
+    async def fake_process(args, **_kwargs):
+        captured["args"] = args
+        (tmp_path / "out.mp4").write_bytes(b"ok")
+        return b""
+
+    converter = VideoConverter(threads=3)
+    monkeypatch.setattr(converter, "probe", fake_probe)
+    monkeypatch.setattr(converter, "_process", fake_process)
+    await converter.convert_to_circle(
+        str(source), resolution=96, crf=24, preset="fast", output_path=str(output),
+    )
+
+    args = captured["args"]
+    plain = [i for i, a in enumerate(args) if a == "-threads"]
+    assert len(plain) == 2, args          # декодер и энкодер
+    assert all(args[i + 1] == "3" for i in plain), args
+    assert args[args.index("-filter_threads") + 1] == "3"
+    assert args[args.index("-filter_complex_threads") + 1] == "3"

@@ -5,6 +5,7 @@
 """
 
 import math
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -41,7 +42,7 @@ DEFAULTS: dict[str, Any] = {
     "logging": {"level": "INFO"},
     "api": {"base_url": "", "local": False},
     "processing": {
-        "workers": 1, "queue_size": 20, "probe_timeout_sec": 15,
+        "workers": 1, "threads": 1, "queue_size": 20, "probe_timeout_sec": 15,
         "encode_timeout_sec": 120, "shutdown_timeout_sec": 30, "temp_dir": "data/tmp",
     },
     "support": {"cooldown_sec": 120, "daily_limit": 3},
@@ -77,14 +78,53 @@ class APIConfig:
         return min(plan_limit, cloud_limit) if plan_limit > 0 else cloud_limit
 
 
+def _cgroup_cpu_quota() -> float | None:
+    """CPU-бюджет контейнера из cgroup v2 cpu.max; None, если он не ограничен."""
+    try:
+        raw = Path("/sys/fs/cgroup/cpu.max").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    parts = raw.split()
+    if len(parts) != 2 or parts[0] == "max":
+        return None
+    try:
+        quota, period = float(parts[0]), float(parts[1])
+    except ValueError:
+        return None
+    if quota <= 0 or period <= 0:
+        return None
+    return quota / period
+
+
+def detect_threads(configured: int = 0, *, cap: int = 8) -> int:
+    """Число потоков ffmpeg на одну конвертацию: из конфига или авто по бюджету CPU.
+
+    Внутри контейнера os.cpu_count() показывает ядра ХОСТА, а не выделенную квоту,
+    поэтому авто берём из cgroup cpu.max и не превышаем число видимых ядер. Берём
+    ПОЛОВИНУ бюджета: потоки в упор к квоте упираются в троттлинг cgroup и выходят
+    медленнее, чем пара потоков с запасом (замерено на 480p, preset ultrafast).
+    """
+    if configured and configured > 0:
+        return int(configured)
+    visible = os.cpu_count() or 1
+    quota = _cgroup_cpu_quota()
+    budget = visible if quota is None else min(quota, visible)
+    return max(1, min(int(budget) // 2, cap))
+
+
 @dataclass
 class ProcessingConfig:
     workers: int = 1
+    threads: int = 1          # потоков на конвертацию; 0 = авто (см. detect_threads)
     queue_size: int = 20
     probe_timeout_sec: float = 15
     encode_timeout_sec: float = 120
     shutdown_timeout_sec: float = 30
     temp_dir: str = "data/tmp"
+
+    def effective_threads(self) -> int:
+        """Сколько потоков отдать одной конвертации (0 в конфиге = авто)."""
+        return detect_threads(self.threads)
 
 
 @dataclass
@@ -211,6 +251,8 @@ class Config:
             value = getattr(self.processing, name)
             if not math.isfinite(value) or value <= 0:
                 errors.append(f"processing.{name}: положительное конечное число")
+        if not 0 <= self.processing.threads <= 64:
+            errors.append("processing.threads: 0 (авто) или целое 1..64")
         temp = Path(self.processing.temp_dir)
         if not self.processing.temp_dir or str(temp) in {"/", ".", "/tmp", "/var/tmp"}:
             errors.append("processing.temp_dir: нужен выделенный каталог бота")
@@ -249,7 +291,8 @@ def _check_types(data: Any) -> None:
         "logging": {"level": str},
         "api": {"base_url": str, "local": bool},
         "processing": {
-            "workers": int, "queue_size": int, "probe_timeout_sec": (int, float),
+            "workers": int, "threads": int, "queue_size": int,
+            "probe_timeout_sec": (int, float),
             "encode_timeout_sec": (int, float), "shutdown_timeout_sec": (int, float),
             "temp_dir": str,
         },

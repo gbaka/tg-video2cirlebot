@@ -179,6 +179,7 @@ async def run_bot(config: Config, bot: Bot) -> int:
         converter=VideoConverter(
             probe_timeout_sec=config.processing.probe_timeout_sec,
             encode_timeout_sec=config.processing.encode_timeout_sec,
+            threads=config.processing.effective_threads(),
         ),
         conversion_queue=ConversionQueue(
             workers=config.processing.workers, queue_size=config.processing.queue_size,
@@ -196,6 +197,10 @@ async def run_bot(config: Config, bot: Bot) -> int:
         dp.update.outer_middleware(ctx.requests)
         me = await bot.get_me()
         logger.info("Бот @%s запущен", me.username)
+        logger.info(
+            "Конвертация: потоков на задачу %d, параллельных задач %d",
+            config.processing.effective_threads(), config.processing.workers,
+        )
         try:
             failed = await publish_command_hints(
                 bot, config.bot.admin_ids, fallback=config.default_language,
