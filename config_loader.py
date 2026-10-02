@@ -23,13 +23,13 @@ DEFAULTS: dict[str, Any] = {
     "plans": {
         "free": {
             "max_size_mb": 15, "max_duration_sec": 60, "resolutions": [360],
-            "default_resolution": 360, "crf": 24, "preset": "fast",
+            "default_resolution": 360, "crf": 24, "preset": "veryfast",
             "daily_limit": 5, "max_album": 3,
         },
         "pro": {
             # 0 = без ограничения по размеру: файл упирается только в потолок Bot API
             "max_size_mb": 0, "max_duration_sec": 60, "resolutions": [360, 480, 640],
-            "default_resolution": 480, "crf": 20, "preset": "medium",
+            "default_resolution": 480, "crf": 20, "preset": "veryfast",
             "daily_limit": 0, "max_album": 0,
         },
     },

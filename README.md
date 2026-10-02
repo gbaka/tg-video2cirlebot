@@ -72,17 +72,19 @@ plans:                       # тарифы
     max_duration_sec: 60     # макс. длительность
     resolutions: [360]       # доступные разрешения кружка
     default_resolution: 360
-    crf: 24                  # качество (меньше = лучше)
-    preset: "fast"
+    crf: 24                  # качество: 0 (максимум)…51 (минимум), меньше = лучше
+    # preset — скорость кодирования при том же качестве (crf). Варианты:
+    # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+    preset: "veryfast"
     daily_limit: 5           # конвертаций в день (0 = без лимита)
     max_album: 3             # видео в одном сообщении (0 = без лимита)
   pro:
-    max_size_mb: 0           # 0 = без ограничения: потолок задаёт сам Bot API
+    max_size_mb: 0           # 0 = без ограничения: потолок задаёт сам Bot API (20 MB в облаке)
     max_duration_sec: 60
     resolutions: [360, 480, 640]
     default_resolution: 480
-    crf: 20
-    preset: "medium"
+    crf: 20                  # crf — как у free (0…51, меньше = лучше)
+    preset: "veryfast"       # preset — варианты см. у plans.free.preset
     daily_limit: 0
     max_album: 0             # 0 = без ограничения
 
