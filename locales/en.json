@@ -177,5 +177,7 @@
   "sub.benefit_album": "• Up to {pro_album} videos in one message instead of {free_album}",
   "sub.benefit_album_unlimited": "• No limit on videos per message",
   "sub.limit_none": "unlimited",
-  "help.tariffs": "\n\n<b>Plans:</b>\n• Free — up to {free_res}×{free_res}, file: {free_size}, limit: {free_limit}\n• ⭐ Pro — up to {pro_res}×{pro_res}, file: {pro_size}, limit: {pro_limit}\n\nSee the “💳 Subscription” section for the full comparison."
+  "help.tariffs": "\n\n<b>Plans:</b>\n• Free — up to {free_res}×{free_res}, file: {free_size}, limit: {free_limit}\n• ⭐ Pro — up to {pro_res}×{pro_res}, file: {pro_size}, limit: {pro_limit}\n\nSee the “💳 Subscription” section for the full comparison.",
+  "meta.about": "🎬 I turn videos into Telegram circles (video notes). Send a video — get a neat round clip.",
+  "meta.description": "🎬 I turn videos into Telegram circles (video notes): send a video and get a neat round clip — no settings, no extra steps.\n\n• Formats: mp4, mov, mkv, webm, avi and other popular ones\n• I crop myself: I cut a square for the circle from any video\n• Need only a part? Set the start and duration and it will be cut exactly\n• Pro: quality up to 640×640, files of any size, no daily pauses\n• Ten interface languages\n\nPayment questions: /paysupport"
 }

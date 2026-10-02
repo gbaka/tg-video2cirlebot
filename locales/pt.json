@@ -177,5 +177,7 @@
   "sub.benefit_album": "• Até {pro_album} vídeos por mensagem em vez de {free_album}",
   "sub.benefit_album_unlimited": "• Sem limite de vídeos por mensagem",
   "sub.limit_none": "sem limite",
-  "help.tariffs": "\n\n<b>Planos:</b>\n• Free — até {free_res}×{free_res}, arquivo: {free_size}, limite: {free_limit}\n• ⭐ Pro — até {pro_res}×{pro_res}, arquivo: {pro_size}, limite: {pro_limit}\n\nVeja a comparação completa na seção «💳 Assinatura»."
+  "help.tariffs": "\n\n<b>Planos:</b>\n• Free — até {free_res}×{free_res}, arquivo: {free_size}, limite: {free_limit}\n• ⭐ Pro — até {pro_res}×{pro_res}, arquivo: {pro_size}, limite: {pro_limit}\n\nVeja a comparação completa na seção «💳 Assinatura».",
+  "meta.about": "🎬 Transformo vídeos em «círculos» do Telegram. Envie um vídeo e receba um círculo caprichado.",
+  "meta.description": "🎬 Transformo vídeos em «círculos» — mensagens de vídeo do Telegram: envie um vídeo e receba um círculo caprichado, sem passos extras.\n\n• Formatos: mp4, mov, mkv, webm, avi e outros populares\n• Recorto sozinho: de qualquer vídeo extraio o quadrado para o círculo\n• Precisa só de um trecho? Informe o início e a duração — corto com precisão\n• Pro: qualidade de até 640×640, arquivos de qualquer tamanho, sem pausas diárias\n• Dez idiomas de interface\n\nDúvidas sobre pagamento: /paysupport"
 }

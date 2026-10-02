@@ -11,6 +11,7 @@ from aiogram.types import CallbackQuery, Message
 
 import menus
 from access import ensure_user
+from bot_metadata import publish_bot_metadata
 from command_hints import publish_command_hints
 from context import get_ctx
 from handlers.admin.shared import (
@@ -48,13 +49,15 @@ async def cmd_admin(message: Message) -> None:
 
 @router.message(Command("syncmenu"), private_chat)
 async def cmd_syncmenu(message: Message) -> None:
-    """Обновляет меню «/», если admin_ids менялись или админ не был доступен."""
+    """Обновляет меню «/» и описание бота, если настройки менялись."""
     if not await admin_guard(message):
         return
     user = await ensure_user(message)
     lang = user["language"]
     ctx = get_ctx()
-    failed = await publish_command_hints(ctx.bot, ctx.config.bot.admin_ids)
+    fallback = ctx.config.default_language
+    failed = await publish_command_hints(ctx.bot, ctx.config.bot.admin_ids, fallback=fallback)
+    failed += await publish_bot_metadata(ctx.bot, fallback=fallback)
     if failed:
         await message.answer(
             t(lang, "admin.syncmenu_partial", failed=escape("; ".join(failed))),

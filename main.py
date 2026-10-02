@@ -16,6 +16,7 @@ from aiogram.client.telegram import TelegramAPIServer
 from aiogram.fsm.storage.memory import MemoryStorage
 
 import context as ctx_module
+from bot_metadata import publish_bot_metadata
 from channel_checker import ChannelChecker
 from command_hints import publish_command_hints
 from config_loader import Config
@@ -204,6 +205,13 @@ async def run_bot(config: Config, bot: Bot) -> int:
         else:
             if failed:
                 logger.warning("Подсказки команд применены не полностью: %s", failed)
+        try:
+            failed = await publish_bot_metadata(bot, fallback=config.default_language)
+        except Exception:  # витрина бота не должна мешать запуску
+            logger.exception("Публикация описания бота не удалась")
+        else:
+            if failed:
+                logger.warning("Описание бота применено не полностью: %s", failed)
         await job_heartbeat()
         await ctx.jobs.start()
         await dp.start_polling(

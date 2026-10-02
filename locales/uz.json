@@ -177,5 +177,7 @@
   "sub.benefit_album": "• {free_album} o'rniga bitta xabarda {pro_album} tagacha video",
   "sub.benefit_album_unlimited": "• Bitta xabardagi videolar soniga cheklov yo'q",
   "sub.limit_none": "cheklovsiz",
-  "help.tariffs": "\n\n<b>Tariflar:</b>\n• Free — {free_res}×{free_res} gacha, fayl: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} gacha, fayl: {pro_size}, limit: {pro_limit}\n\nFarqlar tahlili — «💳 Obuna» bo'limida."
+  "help.tariffs": "\n\n<b>Tariflar:</b>\n• Free — {free_res}×{free_res} gacha, fayl: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} gacha, fayl: {pro_size}, limit: {pro_limit}\n\nFarqlar tahlili — «💳 Obuna» bo'limida.",
+  "meta.about": "🎬 Videoni Telegram «doiralari»ga aylantiraman. Video yuboring — ozoda doira olasiz.",
+  "meta.description": "🎬 Videoni Telegram «doiralari» — video xabarlarga aylantiraman: video yuboring va sozlamalarsiz ozoda doira olasiz.\n\n• Formatlar: mp4, mov, mkv, webm, avi va boshqa mashhur\n• Oʻzim qirqaman: har qanday videodan doira uchun kvadrat kesaman\n• Faqat bir qism kerakmi? Boshlanishi va davomiyligini koʻrsating — aniq qirqaman\n• Pro: sifat 640×640 gacha, har qanday oʻlchamdagi fayllar, kundalik tanaffuslarsiz\n• Interfeysning oʻn tili\n\nToʻlov boʻyicha savollar: /paysupport"
 }

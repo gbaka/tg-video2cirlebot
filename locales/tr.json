@@ -177,5 +177,7 @@
   "sub.benefit_album": "• {free_album} yerine tek mesajda {pro_album} videoya kadar",
   "sub.benefit_album_unlimited": "• Tek mesajdaki video sayısında sınır yok",
   "sub.limit_none": "sınırsız",
-  "help.tariffs": "\n\n<b>Tarifeler:</b>\n• Free — {free_res}×{free_res} değerine kadar, dosya: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} değerine kadar, dosya: {pro_size}, limit: {pro_limit}\n\nFarkların tamamı «💳 Abonelik» bölümünde."
+  "help.tariffs": "\n\n<b>Tarifeler:</b>\n• Free — {free_res}×{free_res} değerine kadar, dosya: {free_size}, limit: {free_limit}\n• ⭐ Pro — {pro_res}×{pro_res} değerine kadar, dosya: {pro_size}, limit: {pro_limit}\n\nFarkların tamamı «💳 Abonelik» bölümünde.",
+  "meta.about": "🎬 Videoları Telegram «yuvarlaklarına» çeviriyorum. Video gönder — düzgün bir yuvarlak al.",
+  "meta.description": "🎬 Videoları Telegram «yuvarlaklarına» — video notlarına çeviriyorum: video gönder — ayar yok, düzgün bir yuvarlak al.\n\n• Formatlar: mp4, mov, mkv, webm, avi ve diğer popülerler\n• Kırpmayı kendim yaparım: her videodan yuvarlak için kareyi keserim\n• Sadece bir parça mı gerek? Başlangıç ve süreyi gir — tam keserim\n• Pro: 640×640'ye kadar kalite, her boyutta dosya, günlük aradan muaf\n• On arayüz dili\n\nÖdeme soruları: /paysupport"
 }

@@ -177,5 +177,7 @@
   "sub.benefit_album": "• Jusqu'à {pro_album} vidéos par message au lieu de {free_album}",
   "sub.benefit_album_unlimited": "• Sans limite du nombre de vidéos par message",
   "sub.limit_none": "sans limite",
-  "help.tariffs": "\n\n<b>Offres :</b>\n• Free — jusqu'à {free_res}×{free_res}, fichier : {free_size}, limite : {free_limit}\n• ⭐ Pro — jusqu'à {pro_res}×{pro_res}, fichier : {pro_size}, limite : {pro_limit}\n\nVoir le détail des différences dans la section « 💳 Abonnement »."
+  "help.tariffs": "\n\n<b>Offres :</b>\n• Free — jusqu'à {free_res}×{free_res}, fichier : {free_size}, limite : {free_limit}\n• ⭐ Pro — jusqu'à {pro_res}×{pro_res}, fichier : {pro_size}, limite : {pro_limit}\n\nVoir le détail des différences dans la section « 💳 Abonnement ».",
+  "meta.about": "🎬 Je transforme les vidéos en « cercles » Telegram. Envoyez une vidéo, recevez un cercle soigné.",
+  "meta.description": "🎬 Je transforme les vidéos en « cercles » — notes vidéo Telegram : envoyez une vidéo, recevez un cercle soigné, sans réglage inutile.\n\n• Formats : mp4, mov, mkv, webm, avi et autres courants\n• Je cadre moi-même : de chaque vidéo je découpe le carré du cercle\n• Besoin d'un extrait ? Indiquez le début et la durée, je coupe au juste\n• Pro : qualité jusqu'à 640×640, fichiers de toute taille, sans pauses quotidiennes\n• Dix langues d'interface\n\nQuestions de paiement : /paysupport"
 }

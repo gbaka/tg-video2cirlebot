@@ -177,5 +177,7 @@
   "sub.benefit_album": "• Bis {pro_album} Videos pro Nachricht statt {free_album}",
   "sub.benefit_album_unlimited": "• Keine Begrenzung der Videoanzahl pro Nachricht",
   "sub.limit_none": "ohne Einschränkungen",
-  "help.tariffs": "\n\n<b>Tarife:</b>\n• Free — bis {free_res}×{free_res}, Datei: {free_size}, Limit: {free_limit}\n• ⭐ Pro — bis {pro_res}×{pro_res}, Datei: {pro_size}, Limit: {pro_limit}\n\nDie Unterschiede finden Sie im Bereich „💳 Abo“."
+  "help.tariffs": "\n\n<b>Tarife:</b>\n• Free — bis {free_res}×{free_res}, Datei: {free_size}, Limit: {free_limit}\n• ⭐ Pro — bis {pro_res}×{pro_res}, Datei: {pro_size}, Limit: {pro_limit}\n\nDie Unterschiede finden Sie im Bereich „💳 Abo“.",
+  "meta.about": "🎬 Ich mache Videos zu Telegram-«Kreisen». Senden Sie ein Video — Sie erhalten einen sauberen Kreis.",
+  "meta.description": "🎬 Ich mache Videos zu Telegram-«Kreisen» (Video-Nachrichten): Video senden — sauberen Kreis erhalten, ohne Einstellungen und Umwege.\n\n• Formate: mp4, mov, mkv, webm, avi und weitere gängige\n• Zuschnitt übernehme ich: aus jedem Video schneide ich das Quadrat für den Kreis\n• Nur ein Ausschnitt? Start und Dauer angeben — ich schneide genau\n• Pro: Qualität bis 640×640, Dateien jeder Größe, ohne tägliche Pausen\n• Zehn Sprachen der Oberfläche\n\nFragen zur Zahlung: /paysupport"
 }
